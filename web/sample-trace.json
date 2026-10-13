@@ -1,0 +1,637 @@
+[
+ {
+  "t": 0,
+  "kind": "request",
+  "title": "Passenger message",
+  "data": {
+   "text": "We're two adults travelling with a five-year-old. Our total seat budget is £45. We want to sit together, and I'd prefer a window away from the wing.",
+   "snapshotVersion": 1,
+   "stateRevision": 0
+  }
+ },
+ {
+  "t": 17,
+  "kind": "parsed",
+  "title": "Rule-based interpretation (en): search",
+  "data": {
+   "intent": {
+    "kind": "search"
+   },
+   "patch": {
+    "setTravellers": [
+     {
+      "type": "adult"
+     },
+     {
+      "type": "adult"
+     },
+     {
+      "type": "child",
+      "age": 5
+     }
+    ],
+    "budgetTotalGBP": 45,
+    "prefs": {
+     "window": 1,
+     "clearView": 1,
+     "cheap": 1
+    },
+    "together": true
+   },
+   "notes": [],
+   "injectionAttempt": false
+  }
+ },
+ {
+  "t": 18,
+  "kind": "tool_call",
+  "title": "updateTripPreferences",
+  "data": {
+   "arguments": {
+    "setTravellers": [
+     {
+      "type": "adult"
+     },
+     {
+      "type": "adult"
+     },
+     {
+      "type": "child",
+      "age": 5
+     }
+    ],
+    "budgetTotalGBP": 45,
+    "together": true,
+    "prefs": {
+     "window": 1,
+     "clearView": 1,
+     "cheap": 1
+    }
+   }
+  }
+ },
+ {
+  "t": 19,
+  "kind": "tool_result",
+  "title": "updateTripPreferences → changed travellers, budget.totalGBP, together, prefs.window, prefs.clearView, prefs.cheap",
+  "data": {
+   "changed": [
+    "travellers",
+    "budget.totalGBP",
+    "together",
+    "prefs.window",
+    "prefs.clearView",
+    "prefs.cheap"
+   ],
+   "warnings": [],
+   "travellers": "2 adults, 1 child",
+   "seatsNeeded": 3,
+   "state": {
+    "revision": 1,
+    "travellers": [
+     {
+      "type": "adult"
+     },
+     {
+      "type": "adult"
+     },
+     {
+      "type": "child",
+      "age": 5
+     }
+    ],
+    "budget": {
+     "totalGBP": 45,
+     "perSeatGBP": null
+    },
+    "together": true,
+    "hard": {
+     "position": null,
+     "zone": null,
+     "fullRecline": false,
+     "underSeatBag": false,
+     "avoidToilets": false,
+     "clearViewRequired": false,
+     "exitRowOnly": false
+    },
+    "prefs": {
+     "window": 1,
+     "aisle": 0,
+     "clearView": 1,
+     "legroom": 0,
+     "quiet": 0,
+     "front": 0,
+     "cheap": 1
+    },
+    "heightCm": null,
+    "excludedSeats": [],
+    "lastRecommendation": null,
+    "selection": null
+   }
+  },
+  "status": "ok"
+ },
+ {
+  "t": 19,
+  "kind": "state",
+  "title": "Constraints vs preferences",
+  "data": {
+   "hard": [
+    "2 adults, 1 child",
+    "total ≤ £45",
+    "seated together",
+    "demo policy: no exit rows with children"
+   ],
+   "preferences": [
+    "window",
+    "away from the wing",
+    "lower price"
+   ],
+   "revision": 1
+  }
+ },
+ {
+  "t": 19,
+  "kind": "tool_call",
+  "title": "findAdjacentSeatGroups",
+  "data": {
+   "arguments": {
+    "topK": 3
+   }
+  }
+ },
+ {
+  "t": 32,
+  "kind": "tool_result",
+  "title": "findAdjacentSeatGroups → ok: 9/60 groups feasible",
+  "data": {
+   "status": "ok",
+   "missing": [],
+   "seatsNeeded": 3,
+   "candidatesConsidered": 60,
+   "feasibleCount": 9,
+   "exclusionCounts": {
+    "UNAVAILABLE": 47,
+    "OVER_TOTAL_BUDGET": 16,
+    "EXIT_ROW_POLICY": 4
+   },
+   "snapshotVersion": 1,
+   "ranked": [
+    {
+     "seats": [
+      "18A",
+      "18B",
+      "18C"
+     ],
+     "row": 18,
+     "totalGBP": 12,
+     "score": 8.4,
+     "components": {
+      "window": 6,
+      "clearView": 4,
+      "price": -1.6
+     },
+     "strengths": [
+      "has the window you asked for",
+      "window is away from the wing",
+      "£33 under budget"
+     ],
+     "compromises": []
+    },
+    {
+     "seats": [
+      "19A",
+      "19B",
+      "19C"
+     ],
+     "row": 19,
+     "totalGBP": 12,
+     "score": 8.4,
+     "components": {
+      "window": 6,
+      "clearView": 4,
+      "price": -1.6
+     },
+     "strengths": [
+      "has the window you asked for",
+      "window is away from the wing",
+      "£33 under budget"
+     ],
+     "compromises": []
+    },
+    {
+     "seats": [
+      "21D",
+      "21E",
+      "21F"
+     ],
+     "row": 21,
+     "totalGBP": 12,
+     "score": 8.4,
+     "components": {
+      "window": 6,
+      "clearView": 4,
+      "price": -1.6
+     },
+     "strengths": [
+      "has the window you asked for",
+      "window is away from the wing",
+      "£33 under budget"
+     ],
+     "compromises": []
+    }
+   ],
+   "conflicts": []
+  },
+  "status": "ok",
+  "seats": [
+   "18A",
+   "18B",
+   "18C",
+   "19A",
+   "19B",
+   "19C",
+   "21D",
+   "21E",
+   "21F"
+  ]
+ },
+ {
+  "t": 33,
+  "kind": "candidates",
+  "title": "60 side-by-side groups of 3 considered, 9 feasible",
+  "data": {
+   "seatsNeeded": 3
+  }
+ },
+ {
+  "t": 33,
+  "kind": "exclusions",
+  "title": "Excluded: UNAVAILABLE ×47, OVER_TOTAL_BUDGET ×16, EXIT_ROW_POLICY ×4",
+  "data": {
+   "counts": {
+    "UNAVAILABLE": 47,
+    "OVER_TOTAL_BUDGET": 16,
+    "EXIT_ROW_POLICY": 4
+   },
+   "examples": {
+    "UNAVAILABLE": [
+     {
+      "group": "1A+1B+1C",
+      "detail": "1A, 1B not available"
+     },
+     {
+      "group": "1D+1E+1F",
+      "detail": "1D not available"
+     },
+     {
+      "group": "2A+2B+2C",
+      "detail": "2A, 2C not available"
+     }
+    ],
+    "OVER_TOTAL_BUDGET": [
+     {
+      "group": "1A+1B+1C",
+      "detail": "total £84 > £45"
+     },
+     {
+      "group": "1D+1E+1F",
+      "detail": "total £84 > £45"
+     },
+     {
+      "group": "2A+2B+2C",
+      "detail": "total £66 > £45"
+     }
+    ],
+    "EXIT_ROW_POLICY": [
+     {
+      "group": "11A+11B+11C",
+      "detail": "exit row: demo policy requires everyone in the row's group to be 16+"
+     },
+     {
+      "group": "11D+11E+11F",
+      "detail": "exit row: demo policy requires everyone in the row's group to be 16+"
+     },
+     {
+      "group": "12A+12B+12C",
+      "detail": "exit row: demo policy requires everyone in the row's group to be 16+"
+     }
+    ]
+   }
+  },
+  "seats": [
+   "1A",
+   "1B",
+   "1C",
+   "1D",
+   "1E",
+   "1F",
+   "2A",
+   "2B",
+   "2C",
+   "2D",
+   "2E",
+   "2F",
+   "3A",
+   "3B",
+   "3C",
+   "3D",
+   "3E",
+   "3F",
+   "4A",
+   "4B",
+   "4C",
+   "4D",
+   "4E",
+   "4F",
+   "5A",
+   "5B",
+   "5C",
+   "5D",
+   "5E",
+   "5F",
+   "6A",
+   "6B",
+   "6C",
+   "6D",
+   "6E",
+   "6F",
+   "7A",
+   "7B",
+   "7C",
+   "7D",
+   "7E",
+   "7F",
+   "8A",
+   "8B",
+   "8C",
+   "8D",
+   "8E",
+   "8F",
+   "9A",
+   "9B",
+   "9C",
+   "9D",
+   "9E",
+   "9F",
+   "10A",
+   "10B",
+   "10C",
+   "10D",
+   "10E",
+   "10F",
+   "11A",
+   "11B",
+   "11C",
+   "11D",
+   "11E",
+   "11F",
+   "12A",
+   "12B",
+   "12C",
+   "12D",
+   "12E",
+   "12F",
+   "13A",
+   "13B",
+   "13C",
+   "13D",
+   "13E",
+   "13F",
+   "14A",
+   "14B",
+   "14C",
+   "16A",
+   "16B",
+   "16C",
+   "16D",
+   "16E",
+   "16F",
+   "17A",
+   "17B",
+   "17C",
+   "18D",
+   "18E",
+   "18F",
+   "20A",
+   "20B",
+   "20C",
+   "20D",
+   "20E",
+   "20F",
+   "21A",
+   "21B",
+   "21C",
+   "22A",
+   "22B",
+   "22C",
+   "22D",
+   "22E",
+   "22F",
+   "23A",
+   "23B",
+   "23C",
+   "23D",
+   "23E",
+   "23F",
+   "24A",
+   "24B",
+   "24C",
+   "24D",
+   "24E",
+   "24F"
+  ]
+ },
+ {
+  "t": 33,
+  "kind": "scores",
+  "title": "Ranked by preferences: 18A+18B+18C (8.4), 19A+19B+19C (8.4), 21D+21E+21F (8.4)",
+  "data": [
+   {
+    "group": "18A+18B+18C",
+    "totalGBP": 12,
+    "score": 8.4,
+    "components": {
+     "window": 6,
+     "clearView": 4,
+     "price": -1.6
+    }
+   },
+   {
+    "group": "19A+19B+19C",
+    "totalGBP": 12,
+    "score": 8.4,
+    "components": {
+     "window": 6,
+     "clearView": 4,
+     "price": -1.6
+    }
+   },
+   {
+    "group": "21D+21E+21F",
+    "totalGBP": 12,
+    "score": 8.4,
+    "components": {
+     "window": 6,
+     "clearView": 4,
+     "price": -1.6
+    }
+   }
+  ],
+  "seats": [
+   "18A",
+   "18B",
+   "18C",
+   "19A",
+   "19B",
+   "19C",
+   "21D",
+   "21E",
+   "21F"
+  ]
+ },
+ {
+  "t": 33,
+  "kind": "tool_call",
+  "title": "validateRecommendation",
+  "data": {
+   "arguments": {
+    "groups": [
+     [
+      "18A",
+      "18B",
+      "18C"
+     ],
+     [
+      "19A",
+      "19B",
+      "19C"
+     ],
+     [
+      "21D",
+      "21E",
+      "21F"
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "t": 33,
+  "kind": "tool_result",
+  "title": "validateRecommendation → valid",
+  "data": {
+   "valid": true,
+   "groups": [
+    {
+     "seats": [
+      "18A",
+      "18B",
+      "18C"
+     ],
+     "valid": true,
+     "totalGBP": 12,
+     "errors": []
+    },
+    {
+     "seats": [
+      "19A",
+      "19B",
+      "19C"
+     ],
+     "valid": true,
+     "totalGBP": 12,
+     "errors": []
+    },
+    {
+     "seats": [
+      "21D",
+      "21E",
+      "21F"
+     ],
+     "valid": true,
+     "totalGBP": 12,
+     "errors": []
+    }
+   ],
+   "snapshotVersion": 1
+  },
+  "status": "ok",
+  "seats": [
+   "18A",
+   "18B",
+   "18C",
+   "19A",
+   "19B",
+   "19C",
+   "21D",
+   "21E",
+   "21F"
+  ]
+ },
+ {
+  "t": 34,
+  "kind": "validation",
+  "title": "Final validation: 3 group(s) accepted against snapshot v1",
+  "data": {
+   "accepted": [
+    {
+     "seats": [
+      "18A",
+      "18B",
+      "18C"
+     ],
+     "totalGBP": 12
+    },
+    {
+     "seats": [
+      "19A",
+      "19B",
+      "19C"
+     ],
+     "totalGBP": 12
+    },
+    {
+     "seats": [
+      "21D",
+      "21E",
+      "21F"
+     ],
+     "totalGBP": 12
+    }
+   ],
+   "rejected": []
+  },
+  "status": "ok",
+  "seats": [
+   "18A",
+   "18B",
+   "18C",
+   "19A",
+   "19B",
+   "19C",
+   "21D",
+   "21E",
+   "21F"
+  ]
+ },
+ {
+  "t": 34,
+  "kind": "final",
+  "title": "Answer ready: 3 validated group(s)",
+  "data": {
+   "latencyMs": 34
+  },
+  "seats": [
+   "18A",
+   "18B",
+   "18C",
+   "19A",
+   "19B",
+   "19C",
+   "21D",
+   "21E",
+   "21F"
+  ]
+ }
+]
