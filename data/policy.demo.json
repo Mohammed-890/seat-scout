@@ -1,0 +1,12 @@
+{
+  "policyId": "demo-policy-v1",
+  "status": "demo",
+  "note": "Explicit demo policy for this prototype. Not any airline's real rules.",
+  "exitRow": {
+    "minAge": 16,
+    "allowInfants": false,
+    "allowChildren": false
+  },
+  "childrenMustSitWithAdult": true,
+  "maxGroupSize": 3
+}

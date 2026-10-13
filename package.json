@@ -1,0 +1,33 @@
+{
+  "name": "seat-scout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent AI seat-selection prototype: a tool-using agent over a deterministic constraint engine, with a 3D cabin and an inspectable execution trace.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "data": "tsx scripts/generate-data.ts",
+    "build:web": "tsx scripts/build-web.ts",
+    "dev": "npm run build:web && tsx src/server/index.ts",
+    "start": "tsx src/server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/unit/*.test.ts tests/integration/*.test.ts",
+    "test:e2e": "npm run build:web && playwright test",
+    "eval": "tsx eval/run.ts --mode deterministic",
+    "eval:live": "tsx eval/run.ts --mode live",
+    "build:artifact": "tsx scripts/build-artifact.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "@types/node": "^22.9.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "zod": "^3.23.8"
+  }
+}
