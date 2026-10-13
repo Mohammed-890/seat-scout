@@ -1,0 +1,12 @@
+{
+ "suiteVersion": 1,
+ "startedAt": "2026-10-13T09:28:48.031Z",
+ "node": "v22.22.0",
+ "dataConfig": "seat-scout-demo-a320neo-v1",
+ "policy": "demo-policy-v1",
+ "cases": 47,
+ "mode": "live",
+ "status": "not_run",
+ "reason": "ANTHROPIC_API_KEY is not set. No live numbers are reported.",
+ "finishedAt": "2026-10-13T09:28:48.031Z"
+}
