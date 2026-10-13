@@ -5,24 +5,29 @@
 import { Session, buildCards, DATA_NOTICE, type TurnResult, type Mode } from "./session.js";
 import { Trace } from "./trace.js";
 import { deterministicTurn, type PlanOutput } from "../agent/deterministic.js";
-import { agentTurn, type ModelClient } from "../agent/agent.js";
+import type { AgentRun } from "../agent/agent.js";
+import type { Trace as TraceT } from "./trace.js";
+
+/** Any live agent implementation: server (Anthropic SDK) or the in-browser preview (claude.ai sample capability). */
+export type AgentRunner = (session: Session, text: string, trace: TraceT) => Promise<AgentRun>;
 import { validateGroups, recommend } from "../core/engine.js";
 import { explainGroup } from "../core/explain.js";
 import { score } from "../core/engine.js";
 
 export interface Pricing { inputPerMTokUSD: number | null; outputPerMTokUSD: number | null }
 
-export async function handleTurn(session: Session, text: string, model: ModelClient | null, pricing?: Pricing): Promise<TurnResult> {
+export async function handleTurn(session: Session, text: string, agent: AgentRunner | null, pricing?: Pricing): Promise<TurnResult> {
   const trace = new Trace();
   const t0 = Date.now();
   session.turns++;
   trace.add("request", "Passenger message", { text, snapshotVersion: session.availability.version, stateRevision: session.state.revision });
   let plan: PlanOutput;
-  let mode: Mode = model ? "live" : "deterministic";
+  let mode: Mode = agent ? "live" : "deterministic";
+  session.lastUserText = text;
   let metrics: TurnResult["metrics"] = { latencyMs: 0, toolCalls: 0 };
-  if (model) {
+  if (agent) {
     try {
-      const r = await agentTurn(session, text, trace, model);
+      const r = await agent(session, text, trace);
       plan = r;
       const cost = pricing?.inputPerMTokUSD != null && pricing.outputPerMTokUSD != null ? (r.inputTokens * pricing.inputPerMTokUSD + r.outputTokens * pricing.outputPerMTokUSD) / 1e6 : null;
       metrics = { latencyMs: 0, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, costUSD: cost, modelCalls: r.modelCalls, toolCalls: r.toolCalls };

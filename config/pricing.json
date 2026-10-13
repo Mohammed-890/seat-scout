@@ -1,0 +1,5 @@
+{
+  "_note": "Fill in current per-million-token prices from https://docs.claude.com before reporting cost. null = cost shown as n/a. No prices are hard-coded in the app.",
+  "claude-sonnet-5-5": { "inputPerMTokUSD": null, "outputPerMTokUSD": null },
+  "claude-haiku-5-5": { "inputPerMTokUSD": null, "outputPerMTokUSD": null }
+}

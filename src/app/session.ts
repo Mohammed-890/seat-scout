@@ -26,6 +26,7 @@ export class Session {
   lastEngine: EngineResult | null = null;
   faults = { toolTimeoutOnce: false };
   turns = 0;
+  lastUserText = "";
   constructor(readonly id: string, readonly ds: Dataset, snapshot: unknown) { this.availability = new AvailabilityStore(snapshot); }
   ctx(): Ctx { return { ds: this.ds, isFree: (id) => this.availability.isFree(id) }; }
 }
