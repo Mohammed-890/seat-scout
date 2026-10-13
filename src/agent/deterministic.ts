@@ -7,6 +7,7 @@ import { parseMessage } from "../core/parser.js";
 import { Session, executeTool, buildCards, engineTraceEvents, stateSummary, prefSummary } from "../app/session.js";
 import type { Trace } from "../app/trace.js";
 import { cheapestFeasible } from "../core/engine.js";
+import { applyPatch } from "../core/state.js";
 
 export interface PlanOutput { message: string; question?: string; groups: string[][]; comparison?: unknown; rowExplanation?: unknown; toolCalls: number }
 
@@ -25,8 +26,18 @@ export async function deterministicTurn(session: Session, text: string, trace: T
 
   if (p.intent.kind === "clarify") return { message: p.intent.question, question: p.intent.question, groups: [], toolCalls };
   if (p.intent.kind === "unsupported")
-    return { message: "In this no-model mode I can only handle seat requests: who is travelling, budget, window/aisle, legroom, sitting together, “why not row N?”, and comparisons. Try “2 adults, window, total budget £30”.", groups: [], toolCalls };
+    return { message: "In this no-model mode I can only handle seat requests: who is travelling, your budget, window or aisle, legroom, sitting together, “why not row N?” and comparisons. Try describing your party, budget and seat preference.", groups: [], toolCalls };
 
+  if (p.notes.includes("cheaper-than-current") && topTotal != null) {
+    // Only lower the budget if something cheaper actually satisfies everything else.
+    const probe = applyPatch(session.state, p.patch).state;
+    const cheaper = cheapestFeasible(probe, session.ctx());
+    trace.add("note", `“Cheaper”: cheapest feasible total under £${topTotal} is ${cheaper ? `£${cheaper.totalGBP} (${cheaper.id})` : "none"}`, undefined, { seats: cheaper?.seats });
+    if (!cheaper) {
+      const q = "Would you like me to relax another requirement (for example the window preference or the zone), or keep the current option?";
+      return { message: `Your current option (total £${topTotal}) is already the cheapest that meets all your requirements, so I haven't changed anything. ${q}`, question: q, groups: session.state.lastRecommendation?.groups ?? [], toolCalls };
+    }
+  }
   if (Object.keys(p.patch).length) {
     const u = await call("updateTripPreferences", p.patch);
     if (!u.ok) return { message: `I couldn't apply that change (${u.error}).`, groups: [], toolCalls };
@@ -76,7 +87,7 @@ export async function deterministicTurn(session: Session, text: string, trace: T
     const msg = `Updated your requirements (${stateSummary(session.state).join(", ")}). The best option is unchanged: row ${best.row}, ${best.seats.join(", ")}, total £${best.totalGBP}, which already satisfies them.`;
     return { message: msg, groups, toolCalls };
   }
-  const note = p.notes.length ? ` (${p.notes.join(" ")})` : "";
+  const note = p.notes.filter((n) => n !== "cheaper-than-current").length ? ` (${p.notes.filter((n) => n !== "cheaper-than-current").join(" ")})` : "";
   const msg = `Best fit for ${stateSummary(session.state).join(", ")}: row ${best.row}, seats ${best.seats.join(", ")}, total £${best.totalGBP}. ${best.strengths.length ? cap(best.strengths.join(", ")) + "." : ""}${best.compromises.length ? ` Compromise: ${best.compromises.join(", ")}.` : ""} ${res.ranked.length - 1 ? `${res.ranked.length - 1} alternative${res.ranked.length > 2 ? "s" : ""} below.` : ""}${note}`.replace(/\s+/g, " ").trim();
   return { message: msg, groups, toolCalls };
 }

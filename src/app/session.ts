@@ -12,7 +12,9 @@ import { Trace, type TraceEvent } from "./trace.js";
 
 export type Mode = "live" | "deterministic" | "deterministic-fallback" | "recovery";
 export interface TurnMetrics { latencyMs: number; model?: string; inputTokens?: number; outputTokens?: number; costUSD?: number | null; modelCalls?: number; toolCalls: number }
+export type Outcome = "recommend" | "no_feasible" | "clarify" | "explain_row" | "compare" | "selected" | "info";
 export interface TurnResult {
+  outcome: Outcome;
   mode: Mode; message: string; question?: string; groups: CardGroup[]; rejected: Array<{ seats: string[]; errors: string[] }>;
   comparison?: unknown; rowExplanation?: unknown; state: TripState; snapshotVersion: number; trace: TraceEvent[]; metrics: TurnMetrics;
   dataNotice: string;

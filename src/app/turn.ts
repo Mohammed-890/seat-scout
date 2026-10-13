@@ -21,6 +21,7 @@ export async function handleTurn(session: Session, text: string, agent: AgentRun
   const t0 = Date.now();
   session.turns++;
   trace.add("request", "Passenger message", { text, snapshotVersion: session.availability.version, stateRevision: session.state.revision });
+  const prevGroups = JSON.stringify(session.state.lastRecommendation?.groups ?? []);
   let plan: PlanOutput;
   let mode: Mode = agent ? "live" : "deterministic";
   session.lastUserText = text;
@@ -46,7 +47,10 @@ export async function handleTurn(session: Session, text: string, agent: AgentRun
   if (rejected.length) message += `\n\n(${rejected.length} proposed option${rejected.length > 1 ? "s were" : " was"} removed because it failed validation.)`;
   metrics.latencyMs = Date.now() - t0;
   trace.add("final", `Answer ready: ${cards.length} validated group(s)${plan.question ? ", with a question" : ""}`, { latencyMs: metrics.latencyMs }, { seats: cards.flatMap((c) => c.seats) });
-  return { mode, message, question: plan.question, groups: cards, rejected, comparison: plan.comparison, rowExplanation: plan.rowExplanation,
+  const noFeasible = trace.events.some((e) => e.kind === "tool_result" && e.title.startsWith("findAdjacentSeatGroups → no_feasible"));
+  const unchanged = JSON.stringify(cards.map((c) => c.seats)) === prevGroups;
+  const outcome: TurnResult["outcome"] = plan.rowExplanation ? "explain_row" : plan.comparison ? "compare" : plan.question && (unchanged || !cards.length) && !noFeasible ? "clarify" : cards.length ? "recommend" : noFeasible ? "no_feasible" : plan.question ? "clarify" : "info";
+  return { outcome, mode, message, question: plan.question, groups: cards, rejected, comparison: plan.comparison, rowExplanation: plan.rowExplanation,
     state: session.state, snapshotVersion: session.availability.version, trace: trace.events, metrics, dataNotice: DATA_NOTICE };
 }
 
@@ -71,7 +75,7 @@ export function simulateSeatTaken(session: Session, seatId?: string): TurnResult
   const msg = cards.length
     ? `${target} was just taken (availability snapshot v${snap.version}). Your requirements and preferences are unchanged. Updated best option: row ${cards[0].row}, ${cards[0].seats.join(", ")}, total £${cards[0].totalGBP}.`
     : `${target} was just taken (snapshot v${snap.version}) and nothing else satisfies your requirements now. Which requirement would you like to relax?`;
-  return { ...blank(session, trace, msg, t0), mode: "recovery", groups: cards };
+  return { ...blank(session, trace, msg, t0), mode: "recovery", groups: cards, outcome: cards.length ? "recommend" : "no_feasible" };
 }
 
 /** Selecting demo seats: revalidated against the latest snapshot first. Not a booking. */
@@ -83,7 +87,7 @@ export function selectSeats(session: Session, seats: string[]): TurnResult {
   if (!v.valid) {
     const r = recommend(session.state, session.ctx(), { topK: 3 });
     const { cards } = buildCards(session, r.ranked.map((c) => c.seats), trace);
-    return { ...blank(session, trace, `Those seats can't be selected any more (${v.groups[0].errors.join("; ")}). Here are the current valid options.`, t0), mode: "recovery", groups: cards };
+    return { ...blank(session, trace, `Those seats can't be selected any more (${v.groups[0].errors.join("; ")}). Here are the current valid options.`, t0), mode: "recovery", groups: cards, outcome: cards.length ? "recommend" : "no_feasible" };
   }
   session.state = { ...session.state, selection: { seats: v.groups[0].seats, snapshotVersion: session.availability.version } };
   const g = session.ds.seats.get(seats[0])!;
@@ -92,6 +96,6 @@ export function selectSeats(session: Session, seats: string[]): TurnResult {
 }
 
 function blank(session: Session, trace: Trace, message: string, t0: number): TurnResult {
-  return { mode: "deterministic", message, groups: [], rejected: [], state: session.state, snapshotVersion: session.availability.version, trace: trace.events,
+  return { outcome: "info", mode: "deterministic", message, groups: [], rejected: [], state: session.state, snapshotVersion: session.availability.version, trace: trace.events,
     metrics: { latencyMs: Date.now() - t0, toolCalls: 0 }, dataNotice: DATA_NOTICE };
 }

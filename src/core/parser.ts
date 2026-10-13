@@ -23,7 +23,8 @@ const NUM_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, f
   "واحد": 1, "اثنين": 2, "اثنان": 2, "ثلاثة": 3, "ثلاث": 3, "أربعة": 4, "خمسة": 5, "خمس": 5, "ستة": 6, "سبعة": 7, "ثمانية": 8, "تسعة": 9, "عشرة": 10 };
 
 function normalise(text: string): string {
-  let t = text.replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).replace(/[’`]/g, "'");
+  let t = text.replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).replace(/[’`]/g, "'")
+    .replace(/شخصين/g, "2 أشخاص").replace(/طفلين/g, "2 أطفال");
   for (const [w, n] of Object.entries(NUM_WORDS)) t = t.replace(new RegExp(`(^|[^\\p{L}])${w}(?=$|[^\\p{L}])`, "giu"), `$1${n}`);
   return " " + t.toLowerCase() + " ";
 }
@@ -47,8 +48,8 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
   // ---------- travellers ----------
   const travellers: Traveller[] = [];
   let partyMentioned = false;
-  const adults = q.match(/(\d) adults?/) || q.match(/(\d) (?:بالغين|بالغ|كبار)/);
-  const ofUs = q.match(/(\d) of us/) || q.match(/(?:نحن|احنا) (\d)/);
+  const adults = q.match(/(\d) adults?/) || q.match(/(\d) (?:(?:أشخاص|اشخاص) )?(?:بالغين|بالغ|كبار)/);
+  const ofUs = q.match(/(\d) of us/) || q.match(/(?:نحن|احنا) (\d)/) || q.match(/(\d) (?:أشخاص|اشخاص)(?! (?:بالغين|كبار))/);
   if (adults) { for (let i = 0; i < Number(adults[1]); i++) travellers.push({ type: "adult" }); partyMentioned = true; }
   if (has(/(me and my|my (wife|husband|partner|friend|mum|mom|dad)|زوجتي|زوجي)/) && !adults) { travellers.push({ type: "adult" }, { type: "adult" }); partyMentioned = true; }
   if (has(/just me|travelling alone|traveling alone|on my own|solo|by myself|لوحدي|وحدي/) && !adults) { travellers.push({ type: "adult" }); partyMentioned = true; }
@@ -87,6 +88,7 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
     const top = ctx.topTotalGBP ?? null;
     if (top == null || top <= 0) return { patch, intent: { kind: "clarify", question: top === 0 ? "The current pick is already free, so nothing is cheaper. Would you like something better at the same price instead?" : "Cheaper than what? Tell me a budget, for example “under £20 in total”." }, notes, injectionAttempt, language };
     patch.budgetTotalGBP = top - 1; patch.prefs = { ...(patch.prefs ?? {}), cheap: 1 };
+    notes.push("cheaper-than-current");
   }
   if (has(/(remove|no|drop|forget) (the )?budget|any price|money is no object/)) { patch.budgetTotalGBP = null; patch.budgetPerSeatGBP = null; }
 
@@ -109,7 +111,7 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
   if (has(/any seat|don't mind where|dont mind where|anywhere is fine/)) { patch.hard = { ...(patch.hard ?? {}), position: null }; }
 
   // ---------- other attributes ----------
-  if (has(/(away from|not over|not near|avoid) the wing|no wing|clear view|بعيد عن الجناح|مو على الجناح|بدون جناح/)) {
+  if (has(/(away from|not (?:be )?over|not (?:be )?near|avoid) the wing|no wing|clear view|بعيد عن الجناح|مو على الجناح|بدون جناح/)) {
     patch.prefs = { ...(patch.prefs ?? {}), clearView: 1, window: Math.max(1, patch.prefs?.window ?? state.prefs.window) };
     if (strong && !soft) patch.hard = { ...(patch.hard ?? {}), clearViewRequired: true };
   }
@@ -142,6 +144,8 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
     patch.setTravellers = [{ type: "adult" }];
     notes.push("Assumed one adult traveller (no party mentioned).");
   }
+  if (!touched && !injectionAttempt && has(/\bwe\b|\bus\b|\bour\b|family|نحن|احنا|عائلتي/) && !state.travellers.length)
+    return { patch, intent: { kind: "clarify", question: "How many of you are travelling, and is anyone under 16? (I need that before checking seats together and exit-row rules.)" }, notes, injectionAttempt, language };
   if (!touched && !injectionAttempt) {
     if (has(/keep|same|sounds good|ok|okay|thanks/)) return { patch, intent: { kind: "search" }, notes, injectionAttempt, language };
     return { patch, intent: { kind: "unsupported" }, notes, injectionAttempt, language };
