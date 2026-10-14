@@ -1,6 +1,6 @@
 {
- "suiteVersion": 1,
- "startedAt": "2026-10-13T09:28:15.947Z",
+ "suiteVersion": "1+requires",
+ "startedAt": "2026-10-14T06:12:49.478Z",
  "node": "v22.22.0",
  "dataConfig": "seat-scout-demo-a320neo-v1",
  "policy": "demo-policy-v1",
@@ -11,21 +11,89 @@
   {
    "system": "tool-grounded deterministic pipeline",
    "cases": 47,
-   "passed": 45,
+   "passed": 47,
    "metrics": {
-    "casePassRatePct": 95.7,
+    "casePassRatePct": 100,
     "hardConstraintSatisfactionPct": 100,
     "validSeatAndAvailabilityPct": 100,
     "adjacencyAndPriceCorrectPct": 100,
-    "impossibleHandledPct": 66.7,
-    "outcomeCorrectPct": 95.7,
+    "impossibleHandledPct": 100,
+    "outcomeCorrectPct": 100,
     "multiTurnStatePct": 100,
     "preferenceHitPct": 100,
     "unsupportedNumericClaims": 0,
     "latencyMsP50": 2,
-    "latencyMsP95": 12,
+    "latencyMsP95": 16,
     "inputTokens": 0,
     "outputTokens": 0
+   },
+   "fractions": {
+    "casesPassed": {
+     "num": 47,
+     "den": 47,
+     "pct": 100,
+     "unit": "cases"
+    },
+    "requestUnderstanding": {
+     "num": 27,
+     "den": 27,
+     "pct": 100,
+     "unit": "stated requirements present in the structured state"
+    },
+    "requestUnderstandingCases": {
+     "num": 12,
+     "den": 12,
+     "pct": 100,
+     "unit": "cases with every stated requirement encoded"
+    },
+    "parsedConstraintSatisfaction": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups meeting the parsed constraints"
+    },
+    "actualRequirementSatisfaction": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups meeting what the passenger asked for"
+    },
+    "impossibleRecognised": {
+     "num": 6,
+     "den": 6,
+     "pct": 100,
+     "unit": "impossible cases answered with no seats and an explanation"
+    },
+    "outcomeCorrect": {
+     "num": 47,
+     "den": 47,
+     "pct": 100,
+     "unit": "cases"
+    },
+    "validSeatRefs": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups"
+    },
+    "adjacencyAndPrice": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups"
+    },
+    "multiTurnState": {
+     "num": 16,
+     "den": 16,
+     "pct": 100,
+     "unit": "checked state fields"
+    },
+    "preferenceHits": {
+     "num": 6,
+     "den": 6,
+     "pct": 100,
+     "unit": "preference checks"
+    }
    },
    "byCategory": {
     "strict_budget": {
@@ -45,7 +113,7 @@
      "total": 3
     },
     "no_feasible": {
-     "pass": 4,
+     "pass": 5,
      "total": 5
     },
     "multi_turn": {
@@ -61,7 +129,7 @@
      "total": 4
     },
     "arabic": {
-     "pass": 3,
+     "pass": 4,
      "total": 4
     },
     "override_attempt": {
@@ -69,26 +137,7 @@
      "total": 4
     }
    },
-   "failures": [
-    {
-     "id": "nofeas-05",
-     "category": "no_feasible",
-     "problems": [
-      "outcome recommend, expected no_feasible",
-      "showed 3 group(s) where none should be shown"
-     ],
-     "message": "Best fit for 1 adult, total ≤ £2: row 17, seats 17E, total £0. £2 under budget. Compromise: no window seat, middle seat. 2 alternatives below."
-    },
-    {
-     "id": "ar-03",
-     "category": "arabic",
-     "problems": [
-      "outcome recommend, expected no_feasible",
-      "showed 3 group(s) where none should be shown"
-     ],
-     "message": "Best fit for 1 adult, ≤ £3 per seat: row 17, seats 17E, total £0. Compromise: no window seat, middle seat. 2 alternatives below."
-    }
-   ]
+   "failures": []
   },
   {
    "system": "naive baseline (same parser, no constraint engine)",
@@ -96,7 +145,7 @@
    "passed": 9,
    "metrics": {
     "casePassRatePct": 19.1,
-    "hardConstraintSatisfactionPct": 34,
+    "hardConstraintSatisfactionPct": 27.7,
     "validSeatAndAvailabilityPct": 100,
     "adjacencyAndPriceCorrectPct": 36.2,
     "impossibleHandledPct": 0,
@@ -105,9 +154,77 @@
     "preferenceHitPct": 66.7,
     "unsupportedNumericClaims": 0,
     "latencyMsP50": 0,
-    "latencyMsP95": 1,
+    "latencyMsP95": 2,
     "inputTokens": 0,
     "outputTokens": 0
+   },
+   "fractions": {
+    "casesPassed": {
+     "num": 9,
+     "den": 47,
+     "pct": 19.1,
+     "unit": "cases"
+    },
+    "requestUnderstanding": {
+     "num": 27,
+     "den": 27,
+     "pct": 100,
+     "unit": "stated requirements present in the structured state"
+    },
+    "requestUnderstandingCases": {
+     "num": 12,
+     "den": 12,
+     "pct": 100,
+     "unit": "cases with every stated requirement encoded"
+    },
+    "parsedConstraintSatisfaction": {
+     "num": 13,
+     "den": 47,
+     "pct": 27.7,
+     "unit": "shown seat groups meeting the parsed constraints"
+    },
+    "actualRequirementSatisfaction": {
+     "num": 13,
+     "den": 47,
+     "pct": 27.7,
+     "unit": "shown seat groups meeting what the passenger asked for"
+    },
+    "impossibleRecognised": {
+     "num": 0,
+     "den": 6,
+     "pct": 0,
+     "unit": "impossible cases answered with no seats and an explanation"
+    },
+    "outcomeCorrect": {
+     "num": 33,
+     "den": 47,
+     "pct": 70.2,
+     "unit": "cases"
+    },
+    "validSeatRefs": {
+     "num": 47,
+     "den": 47,
+     "pct": 100,
+     "unit": "shown seat groups"
+    },
+    "adjacencyAndPrice": {
+     "num": 17,
+     "den": 47,
+     "pct": 36.2,
+     "unit": "shown seat groups"
+    },
+    "multiTurnState": {
+     "num": 16,
+     "den": 16,
+     "pct": 100,
+     "unit": "checked state fields"
+    },
+    "preferenceHits": {
+     "num": 4,
+     "den": 6,
+     "pct": 66.7,
+     "unit": "preference checks"
+    }
    },
    "byCategory": {
     "strict_budget": {
@@ -317,7 +434,8 @@
      "category": "no_feasible",
      "problems": [
       "outcome recommend, expected no_feasible",
-      "showed 1 group(s) where none should be shown"
+      "showed 1 group(s) where none should be shown",
+      "17A: not an exit row, no clear-view window"
      ],
      "message": "Seats 17A."
     },
@@ -326,7 +444,8 @@
      "category": "no_feasible",
      "problems": [
       "outcome recommend, expected no_feasible",
-      "showed 1 group(s) where none should be shown"
+      "showed 1 group(s) where none should be shown",
+      "17A: total £6 > £2"
      ],
      "message": "Seats 17A."
     },
@@ -474,7 +593,8 @@
      "category": "arabic",
      "problems": [
       "outcome recommend, expected no_feasible",
-      "showed 1 group(s) where none should be shown"
+      "showed 1 group(s) where none should be shown",
+      "17A: seat over per-seat budget"
      ],
      "message": "Seats 17A."
     },
@@ -653,12 +773,9 @@
   },
   {
    "id": "nofeas-05",
-   "pass": false,
-   "outcome": "recommend",
-   "problems": [
-    "outcome recommend, expected no_feasible",
-    "showed 3 group(s) where none should be shown"
-   ]
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
   },
   {
    "id": "multi-01",
@@ -764,12 +881,9 @@
   },
   {
    "id": "ar-03",
-   "pass": false,
-   "outcome": "recommend",
-   "problems": [
-    "outcome recommend, expected no_feasible",
-    "showed 3 group(s) where none should be shown"
-   ]
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
   },
   {
    "id": "ar-04",
@@ -802,5 +916,5 @@
    "problems": []
   }
  ],
- "finishedAt": "2026-10-13T09:28:16.238Z"
+ "finishedAt": "2026-10-14T06:12:49.714Z"
 }

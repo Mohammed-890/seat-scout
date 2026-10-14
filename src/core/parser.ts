@@ -93,20 +93,31 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
   if (has(/(remove|no|drop|forget) (the )?budget|any price|money is no object/)) { patch.budgetTotalGBP = null; patch.budgetPerSeatGBP = null; }
 
   // ---------- seat position ----------
-  const soft = has(/prefer|ideally|would like|i'd like|if possible|nice to have|أفضل|يفضل|لو أمكن|ياريت/);
+  const SOFT = /prefer|ideally|would like|i'd like|if possible|if available|where possible|nice to have|would be nice|rather|فضل|لو أمكن|لو امكن|ياريت|إن أمكن|ان امكن/;
+  const soft = has(SOFT);
   const strong = has(/\bmust\b|\bneed\b|have to|only|required|essential|لازم|ضروري/);
-  const win = has(/window|نافذة|شباك|الشباك/), aisle = has(/aisle|ممر/);
+  const WIN = /window|نافذة|شباك/, AISLE = /aisle|ممر/;
+  const win = has(WIN), aisle = has(AISLE);
   if (win && aisle && /\band\b|و/.test(q) && !/\bor\b|أو/.test(q))
     return { patch, intent: { kind: "clarify", question: "A single seat can't be both window and aisle. For your group, should I require a window, an aisle, or just prefer one of them?" }, notes, injectionAttempt, language };
+  // A seat position the passenger names ("window", "window seat", "مقعد شباك") is a requirement.
+  // It is only a weighted preference when the clause that mentions it softens it ("prefer", "ideally", "if possible", "نفضل").
+  // Judged per clause so "sit together, and I'd prefer a window" stays soft while "1 adult, window, total £2" is a requirement.
+  const clauses = q.split(/[,.;!?،؛\n]| and | but /);
+  const positionIsSoft = (re: RegExp) => clauses.filter((c) => re.test(c)).every((c) => SOFT.test(c));
   const negWin = has(/no window|not (a |the )?window|without (a )?window/);
   if (has(/keep the window/)) patch.prefs = { ...(patch.prefs ?? {}), window: Math.max(1, state.prefs.window) };
   else if (win && !negWin) {
-    if (strong && !soft) patch.hard = { ...(patch.hard ?? {}), position: "window" };
+    if (!positionIsSoft(WIN)) { patch.hard = { ...(patch.hard ?? {}), position: "window" }; notes.push("Window treated as a requirement (stated without a softening word)."); }
     patch.prefs = { ...(patch.prefs ?? {}), window: 1 };
   }
   if (aisle && !has(/not (an |the )?aisle|no aisle/)) {
-    if (strong && !soft) patch.hard = { ...(patch.hard ?? {}), position: "aisle" };
+    if (!positionIsSoft(AISLE)) { patch.hard = { ...(patch.hard ?? {}), position: "aisle" }; notes.push("Aisle treated as a requirement (stated without a softening word)."); }
     patch.prefs = { ...(patch.prefs ?? {}), aisle: 1 };
+  }
+  if (has(/get(ting)? out (easily|easy|quickly)|easy (to get out|access to the aisle|aisle access)|easier to get out|climb over|not (have to|want to) (climb|squeeze)|سهولة الخروج|اطلع بسهولة|أطلع بسهولة/)) {
+    patch.prefs = { ...(patch.prefs ?? {}), aisle: 2 };
+    if (state.hard.position === "window") { patch.hard = { ...(patch.hard ?? {}), position: null }; notes.push("Easier aisle access now outranks the window: the window is kept as a preference, not a requirement."); }
   }
   if (has(/any seat|don't mind where|dont mind where|anywhere is fine/)) { patch.hard = { ...(patch.hard ?? {}), position: null }; }
 
