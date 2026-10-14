@@ -19,6 +19,7 @@ import { llmBaseline } from "./llm-baseline.js";
 const args = process.argv.slice(2);
 const mode = args.includes("--mode") ? args[args.indexOf("--mode") + 1] : "deterministic";
 const only = args.includes("--case") ? args[args.indexOf("--case") + 1] : null;
+const tag = args.includes("--tag") ? args[args.indexOf("--tag") + 1] : null;
 const suite = JSON.parse(readFileSync(new URL("./cases.json", import.meta.url), "utf8"));
 const cases: Case[] = suite.cases.filter((c: Case) => !only || c.id === only);
 const ds = loadDataset();
@@ -63,6 +64,8 @@ function aggregate(name: string, rows: ReturnType<typeof checkCase>[]) {
   const lat = rows.map((r) => r.latencyMs).sort((a, b) => a - b);
   const pct = (p: number) => lat[Math.min(lat.length - 1, Math.floor(p * lat.length))];
   const rate = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : null);
+  const frac = (a: number, b: number, unit: string) => ({ num: a, den: b, pct: rate(a, b), unit });
+  const passed = rows.filter((r) => r.pass).length, outcomeOk = rows.filter((r) => r.outcomeOk).length;
   const byCat: Record<string, { pass: number; total: number }> = {};
   for (const r of rows) { byCat[r.category] ??= { pass: 0, total: 0 }; byCat[r.category].total++; if (r.pass) byCat[r.category].pass++; }
   return {
@@ -79,6 +82,20 @@ function aggregate(name: string, rows: ReturnType<typeof checkCase>[]) {
       unsupportedNumericClaims: sum("unsupportedClaims"),
       latencyMsP50: pct(0.5), latencyMsP95: pct(0.95),
       inputTokens: rows.reduce((a, r) => a + r.tokens.input, 0), outputTokens: rows.reduce((a, r) => a + r.tokens.output, 0),
+    },
+    /** Each figure carries its numerator, denominator and unit, so different denominators cannot be confused. */
+    fractions: {
+      casesPassed: frac(passed, rows.length, "cases"),
+      requestUnderstanding: frac(sum("reqEncoded"), sum("reqStated"), "stated requirements present in the structured state"),
+      requestUnderstandingCases: frac(sum("casesUnderstood"), sum("casesWithReq"), "cases with every stated requirement encoded"),
+      parsedConstraintSatisfaction: frac(sum("groupsSatisfyingParsed"), sum("groupsShown"), "shown seat groups meeting the parsed constraints"),
+      actualRequirementSatisfaction: frac(sum("groupsSatisfyingHard"), sum("groupsShown"), "shown seat groups meeting what the passenger asked for"),
+      impossibleRecognised: frac(sum("impossibleHandled"), sum("impossibleCases"), "impossible cases answered with no seats and an explanation"),
+      outcomeCorrect: frac(outcomeOk, rows.length, "cases"),
+      validSeatRefs: frac(sum("groupsValidRefs"), sum("groupsShown"), "shown seat groups"),
+      adjacencyAndPrice: frac(sum("groupsAdjacentPriceOk"), sum("groupsShown"), "shown seat groups"),
+      multiTurnState: frac(sum("stateFieldsCorrect"), sum("stateFieldsChecked"), "checked state fields"),
+      preferenceHits: frac(sum("prefHits"), sum("prefChecks"), "preference checks"),
     },
     byCategory: byCat,
     failures: rows.filter((r) => !r.pass).map((r) => ({ id: r.id, category: r.category, problems: r.problems, message: r.message.slice(0, 240) })),
@@ -113,19 +130,22 @@ async function main() {
   out.finishedAt = new Date().toISOString();
   mkdirSync(new URL("./results/", import.meta.url), { recursive: true });
   const day = startedAt.slice(0, 10);
-  writeFileSync(new URL(`./results/${day}-${out.mode}.json`, import.meta.url), JSON.stringify(out, null, 1));
+  if (tag) out.tag = tag;
+  writeFileSync(new URL(`./results/${day}-${out.mode}${tag ? "-" + tag : ""}.json`, import.meta.url), JSON.stringify(out, null, 1));
+  if (tag) { for (const s of out.systems ?? []) console.log(`${s.system}:`, JSON.stringify(Object.fromEntries(Object.entries(s.fractions).map(([k, v]: any) => [k, `${v.num}/${v.den}`])))); return; }
   if (out.mode === "deterministic" && !only) writeFileSync(new URL("./results/latest.json", import.meta.url), JSON.stringify(out, null, 1));
   if (!only) writeReport(out);
-  for (const s of out.systems ?? []) console.log(`${s.system}: ${s.passed}/${s.cases} cases`, s.metrics);
+  for (const s of out.systems ?? []) console.log(`${s.system}:`, JSON.stringify(Object.fromEntries(Object.entries(s.fractions).map(([k, v]: any) => [k, `${v.num}/${v.den}`]))));
   if (out.status === "not_run") console.log(out.reason);
 }
 
 function writeReport(o: any) {
   const path = new URL("./results/REPORT.md", import.meta.url);
   let prev = ""; try { prev = readFileSync(path, "utf8"); } catch { /* first run */ }
-  const sec = (o.systems ?? []).map((s: any) => `| ${s.system} | ${s.passed}/${s.cases} | ${s.metrics.hardConstraintSatisfactionPct ?? "n/a"}% | ${s.metrics.validSeatAndAvailabilityPct ?? "n/a"}% | ${s.metrics.adjacencyAndPriceCorrectPct ?? "n/a"}% | ${s.metrics.impossibleHandledPct ?? "n/a"}% | ${s.metrics.multiTurnStatePct ?? "n/a"}% | ${s.metrics.unsupportedNumericClaims} | ${s.metrics.latencyMsP50}/${s.metrics.latencyMsP95} |`).join("\n");
+  const F = (f: any) => (f && f.den ? `${f.num}/${f.den} (${f.pct}%)` : "n/a");
+  const sec = (o.systems ?? []).map((s: any) => `| ${s.system} | ${F(s.fractions.casesPassed)} | ${F(s.fractions.requestUnderstanding)} | ${F(s.fractions.parsedConstraintSatisfaction)} | ${F(s.fractions.actualRequirementSatisfaction)} | ${F(s.fractions.impossibleRecognised)} | ${F(s.fractions.adjacencyAndPrice)} | ${F(s.fractions.multiTurnState)} | ${s.metrics.unsupportedNumericClaims} | ${s.metrics.latencyMsP50}/${s.metrics.latencyMsP95} |`).join("\n");
   const fails = (o.systems ?? []).map((s: any) => `\n**${s.system}: failures (${s.failures.length})**\n${s.failures.map((f: any) => `- \`${f.id}\` (${f.category}): ${f.problems.join("; ")}`).join("\n") || "- none"}`).join("\n");
-  const block = `<!-- ${o.mode} -->\n## ${o.mode === "live" ? "Live-model evaluation" : "Deterministic evaluation"} · ${o.startedAt}\n\n${o.status === "not_run" ? `**Not run:** ${o.reason}\n` : `${o.description ?? `Model: ${o.model}, settings ${JSON.stringify(o.settings)}`}\nData: \`${o.dataConfig}\`, policy \`${o.policy}\`, ${o.cases} cases, Node ${o.node}.\n\n| System | Cases passed | Hard constraints | Valid seat refs | Adjacency & price | Impossible handled | Multi-turn state | Unsupported numeric claims | Latency p50/p95 ms |\n|---|---|---|---|---|---|---|---|---|\n${sec}\n${fails}\n`}<!-- /${o.mode} -->`;
+  const block = `<!-- ${o.mode} -->\n## ${o.mode === "live" ? "Live-model evaluation" : "Deterministic evaluation"} · ${o.startedAt}\n\n${o.status === "not_run" ? `**Not run:** ${o.reason}\n` : `${o.description ?? `Model: ${o.model}, settings ${JSON.stringify(o.settings)}`}\nData: \`${o.dataConfig}\`, policy \`${o.policy}\`, ${o.cases} cases, Node ${o.node}.\n\nDenominators differ: requirements stated across cases, seat groups shown, impossible cases, state fields checked. Parsed-constraint satisfaction checks shown groups against the structured state; it cannot catch a requirement the parser never recorded. Actual-requirement satisfaction checks against what the case says the passenger asked for.\n\n| System | Cases passed | Request understanding (requirements) | Parsed-constraint satisfaction (groups) | Actual-requirement satisfaction (groups) | Impossible recognised (cases) | Adjacency & price (groups) | Multi-turn state (fields) | Unsupported numeric claims | Latency p50/p95 ms |\n|---|---|---|---|---|---|---|---|---|---|\n${sec}\n${fails}\n`}<!-- /${o.mode} -->`;
   const re = new RegExp(`<!-- ${o.mode} -->[\\s\\S]*?<!-- /${o.mode} -->`);
   const head = "# Evaluation report\n\nGenerated by `eval/run.ts`. Case definitions: `eval/cases.json` (written before running). Checks: `eval/checks.ts` (against raw data files).\n\n";
   const body = prev.includes("# Evaluation report") ? (re.test(prev) ? prev.replace(re, block) : prev + "\n" + block + "\n") : head + block + "\n";

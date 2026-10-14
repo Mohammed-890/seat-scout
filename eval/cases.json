@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": "1+requires",
  "defined": "2026-10-13",
  "note": "Expectations are properties checked against the raw data files, written before running.",
  "cases": [
@@ -61,7 +61,11 @@
     ],
     "seats": 2,
     "maxTotal": 10,
-    "preferWindowTop": true
+    "preferWindowTop": true,
+    "requires": {
+     "position": "window",
+     "maxTotal": 10
+    }
    }
   },
   {
@@ -76,7 +80,11 @@
      "recommend"
     ],
     "seats": 1,
-    "maxTotal": 6
+    "maxTotal": 6,
+    "requires": {
+     "position": "aisle",
+     "maxTotal": 6
+    }
    }
   },
   {
@@ -184,7 +192,11 @@
     ],
     "seats": 1,
     "maxTotal": 30,
-    "mustIncludePosition": "window"
+    "mustIncludePosition": "window",
+    "requires": {
+     "position": "window",
+     "maxTotal": 30
+    }
    }
   },
   {
@@ -200,7 +212,11 @@
     ],
     "seats": 1,
     "maxTotal": 10,
-    "mustIncludePosition": "aisle"
+    "mustIncludePosition": "aisle",
+    "requires": {
+     "position": "aisle",
+     "maxTotal": 10
+    }
    }
   },
   {
@@ -234,7 +250,12 @@
     "seats": 1,
     "maxTotal": 30,
     "mustIncludePosition": "window",
-    "clearViewRequired": true
+    "clearViewRequired": true,
+    "requires": {
+     "position": "window",
+     "clearView": true,
+     "maxTotal": 30
+    }
    }
   },
   {
@@ -297,6 +318,10 @@
     "state": {
      "budgetTotalGBP": 20,
      "prefs.window": 1
+    },
+    "requires": {
+     "position": "window",
+     "maxTotal": 20
     }
    }
   },
@@ -382,7 +407,13 @@
     "outcome": [
      "no_feasible"
     ],
-    "noGroups": true
+    "noGroups": true,
+    "requires": {
+     "position": "window",
+     "clearView": true,
+     "exitRowOnly": true,
+     "maxTotal": 40
+    }
    },
    "notes": "exit rows 11-12 are wing rows"
   },
@@ -397,7 +428,11 @@
     "outcome": [
      "no_feasible"
     ],
-    "noGroups": true
+    "noGroups": true,
+    "requires": {
+     "position": "window",
+     "maxTotal": 2
+    }
    },
    "notes": "cheapest window seat is £6"
   },
@@ -530,6 +565,10 @@
     "state": {
      "heightCm": 193,
      "prefs.window": 1
+    },
+    "requires": {
+     "position": "window",
+     "maxTotal": 30
     }
    }
   },
@@ -622,7 +661,11 @@
     ],
     "seats": 2,
     "maxTotal": 70,
-    "exitRowOnly": true
+    "exitRowOnly": true,
+    "requires": {
+     "exitRowOnly": true,
+     "maxTotal": 70
+    }
    }
   },
   {
@@ -685,7 +728,11 @@
      "recommend"
     ],
     "seats": 2,
-    "maxTotal": 20
+    "maxTotal": 20,
+    "requires": {
+     "position": "aisle",
+     "maxTotal": 20
+    }
    }
   },
   {
@@ -699,7 +746,11 @@
     "outcome": [
      "no_feasible"
     ],
-    "noGroups": true
+    "noGroups": true,
+    "requires": {
+     "position": "window",
+     "maxPerSeat": 3
+    }
    }
   },
   {
@@ -802,5 +853,6 @@
     }
    }
   }
- ]
+ ],
+ "requiresNote": "expect.requires lists what the passenger actually asked for (added 2026-10-14 after nofeas-05/ar-03 exposed that cases expecting no groups never declared the requirement). It is checked independently of the parser: understanding = is each requirement present in the final structured state; actual-requirement satisfaction = do shown seats meet it in the raw data."
 }
