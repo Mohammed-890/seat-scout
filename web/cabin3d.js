@@ -477,11 +477,18 @@ function airLayout(w,h){const ob=fitObstacles();const key=[w,h,camera.fov,air.az
 function fitDist(){return airLay.d}
 const VIEWS={F:{y:0,p:-0.1},W:{y:1.5,p:-0.2},L:{y:0,p:-0.86}};
 const outSide=id=>SEATS[id].letter<="C"?-1:1;
-function viewAngles(id,m){const v=VIEWS[m]||VIEWS.F,o=outSide(id);return {y:m==="W"?v.y*o:v.y,p:v.p}}
+/* the window view aims at the centre of the nearest window, preferring one slightly ahead, as a passenger would look */
+function viewAngles(id,m){const v=VIEWS[m]||VIEWS.F,o=outSide(id);if(m!=="W")return {y:v.y,p:v.p};
+  const e=eyeFor(id),s=SEATS[id];if(s.position==="window")e.add(new THREE.Vector3(o*LEAN.x,LEAN.y,LEAN.z));
+  let best=null,bd=1e9;for(const z of WIN){const d=Math.abs(z-(e.z-0.25));if(d<bd){bd=d;best=z}}
+  if(best===null||bd>0.9)return {y:v.y*o,p:v.p};
+  const t=new THREE.Vector3(o*R*Math.cos(aWin)*0.97,WIN_Y-0.02,best),d=t.sub(e).normalize();
+  const y=Math.atan2(d.x,-d.z),yc=o*Math.min(Math.abs(y),1.45);return {y:yc,p:Math.max(-0.3,Math.min(0.1,Math.asin(d.y)))}}
 function eyeFor(id){const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),EYE_Y,backZ[s.row]-0.01)}
-/* in the window view a window-seat passenger leans toward the glass; others stay upright */
+/* in the window view a window-seat passenger shifts slightly; others stay put */
 let lean=0,leanGoal=0;function leanFor(id,m){return m==="W"&&SEATS[id].position==="window"?1:0}
-function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*0.09*lean,-0.02*lean,-0.07*lean)}
+const LEAN={x:-0.03,y:-0.02,z:-0.04};/* sit back from the wall a little so the window is seen with its surroundings */
+function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*LEAN.x*lean,LEAN.y*lean,LEAN.z*lean)}
 const _m=new THREE.Matrix4(),_up=new THREE.Vector3(0,1,0);
 function quatLook(pos,tgt){_m.lookAt(pos,tgt,_up);return new THREE.Quaternion().setFromRotationMatrix(_m)}
 function dirFrom(y,p){return new THREE.Vector3(Math.sin(y)*Math.cos(p),Math.sin(p),-Math.cos(y)*Math.cos(p))}
