@@ -63,7 +63,7 @@ function layer(o) {
   m.rotation.x = -Math.PI / 2; m.position.y = o.alt; m.renderOrder = o.order; m.userData.o = o; SKY.scene.add(m); SKY.layers.push(m); return m;
 }
 const L_GROUND = layer({ alt: -10500, scale: 9000, cov: 0, sharp: 1, fogDist: 26000, order: 1, ground: true, oct: 5 });
-const L_DECK = layer({ alt: -1900, scale: 2600, cov: 0.5, sharp: 0.2, fogDist: 34000, order: 2, oct: 6 });
+const L_DECK = layer({ alt: -1900, scale: 2600, cov: 0.5, sharp: 0.2, fogDist: 34000, order: 2, oct: 5 });
 const L_CUMULUS = layer({ alt: -650, scale: 1100, cov: 0.6, sharp: 0.13, fogDist: 26000, order: 3, oct: 5 });
 const L_CIRRUS = layer({ alt: 5200, scale: 9000, stretch: [0.35, 2.6], cov: 0.56, sharp: 0.3, fogDist: 60000, order: 4, opacity: 0.35, oct: 5 });
 
@@ -119,12 +119,21 @@ function updateWindowLight() {
   if (Math.abs(winLight.intensity - want) > 0.01) { winLight.intensity = want; dirty = true; }
 }
 
-/* render pass, called by cabin3d.js before the cabin is drawn */
+/* Render pass, called by cabin3d.js before the cabin is drawn. The sky is drawn at a third of the resolution into a
+   texture that becomes the cabin's background: soft clouds lose nothing visible, and most of it is hidden behind the
+   cabin anyway, so this keeps the per-pixel noise cost small. */
+SKY.rt = new THREE.WebGLRenderTarget(16, 16, { depthBuffer: false }); SKY.rt.texture.encoding = THREE.sRGBEncoding;
 function renderSky(c) {
+  const vp = new THREE.Vector4(); renderer.getCurrentViewport(vp); const pr = renderer.getPixelRatio();
+  const div = QUALITY.low ? 4 : 3, w = Math.max(16, Math.round(vp.z / div)), h = Math.max(16, Math.round(vp.w / div));
+  if (SKY.rt.width !== w || SKY.rt.height !== h) SKY.rt.setSize(w, h);
   SKY.cam.quaternion.copy(c.quaternion); SKY.cam.fov = c.fov; SKY.cam.aspect = c.aspect;
   if (c.view && c.view.enabled) SKY.cam.setViewOffset(c.view.fullWidth, c.view.fullHeight, c.view.offsetX, c.view.offsetY, c.view.width, c.view.height); else SKY.cam.clearViewOffset();
   SKY.cam.updateProjectionMatrix(); SKY.cam.updateMatrixWorld();
-  const keep = renderer.shadowMap.needsUpdate; renderer.render(SKY.scene, SKY.cam); renderer.shadowMap.needsUpdate = keep;
+  const keep = renderer.shadowMap.needsUpdate, prevTarget = renderer.getRenderTarget(), scis = renderer.getScissorTest();
+  renderer.setScissorTest(false); renderer.setRenderTarget(SKY.rt); renderer.clear(); renderer.render(SKY.scene, SKY.cam);
+  renderer.setRenderTarget(prevTarget); renderer.setScissorTest(scis); renderer.setViewport(vp.x / pr, vp.y / pr, vp.z / pr, vp.w / pr);
+  renderer.shadowMap.needsUpdate = keep; scene.background = SKY.rt.texture;
 }
 /* per-frame: drift the scenery (only while it is visible and motion is allowed); returns true if a redraw is needed */
 function skyFrame(dt) {

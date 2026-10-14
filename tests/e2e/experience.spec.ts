@@ -92,44 +92,55 @@ test("no duplicate submissions while a request runs; failed messages keep a retr
   expect(errs.filter((e) => !/Failed to fetch|NetworkError/.test(e))).toEqual([]);
 });
 
-test("cabin objects, recline preview, camera interruption, playground and aisle demo", async ({ page }) => {
+test("camera interruption: going back mid-transition never leaves controls disabled", async ({ page }) => {
   const errs = errorsOf(page);
   await page.goto("/"); await expect(page.locator("#loading")).toHaveClass(/done/);
-  // camera interruption: start the transition and immediately go back; controls must not stay disabled
   await page.evaluate("ui.select('14A');enterSeat('14A','F');backToAircraft()");
-  await expect.poll(() => page.evaluate("view")).toMatch(/AIR|T/);
   await expect.poll(() => page.evaluate("view"), { timeout: 240_000 }).toBe("AIR");
   await expect(page.locator('.views button[data-v="F"]')).toBeEnabled();
-  // sit in 14A (window): only supported features are offered
-  await page.evaluate("enterSeat('14A','F')");
+  await page.evaluate("enterSeat('14A','F')"); await page.keyboard.press("Escape"); // skip
   await expect.poll(() => page.evaluate("view"), { timeout: 240_000 }).toBe("F");
+  await expect(page.locator('.views button[data-v="AIR"]')).toBeEnabled();
+  expect(errs).toEqual([]);
+});
+
+/* Interaction states are checked with reduced motion (movements complete instantly), because software rendering
+   here runs the full-screen cabin at roughly one frame every several seconds; smoothness can't be judged in it. */
+test("cabin objects, recline preview, playground and aisle demo", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce" });
+  const page = await ctx.newPage(); const errs = errorsOf(page);
+  await page.route("https://cdn.jsdelivr.net/npm/three@0.147.0/**", (r) => r.fulfill({ body: readFileSync(`node_modules/three/${r.request().url().split("three@0.147.0/")[1]}`, "utf8"), contentType: "application/javascript" }));
+  await page.route("https://fonts.googleapis.com/**", (r) => r.fulfill({ body: "", contentType: "text/css" }));
+  await page.goto("http://127.0.0.1:8790/"); await expect(page.locator("#loading")).toHaveClass(/done/);
+  await page.evaluate("ui.select('14A');enterSeat('14A','F')");
+  await expect.poll(() => page.evaluate("view"), { timeout: 60_000 }).toBe("F");
   await expect(page.locator("#ctrlBar")).toBeVisible();
   const sup = (await page.evaluate("RIG.sup")) as any;
   expect(sup.shade).toBe(true); expect(sup.armL).toBe(false); expect(sup.armR).toBe(true); expect(sup.tray).toBe(true);
-  for (const [k, key] of [["tray", "t"], ["shade", "s"], ["light", "l"], ["belt", "b"], ["armR", "]"]] as const) {
-    await page.keyboard.press(key);
-    await expect.poll(() => page.evaluate(`TW.list.length`), { timeout: 30_000 }).toBe(0);
-  }
+  for (const key of ["t", "s", "l", "b", "]"]) { await page.keyboard.press(key); await expect.poll(() => page.evaluate("TW.list.length")).toBe(0); }
   const st = (await page.evaluate("RIG.st")) as any;
   expect(st.tray).toBe(true); expect(st.shade).toBe("down"); expect(st.light).toBe(true); expect(st.belt).toBe(0); expect(st.armR).toBe(true);
   await expect(page.locator('#ctrlBar [data-k="tray"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator('#ctrlBar [data-k="armL"]')).toHaveAttribute("aria-disabled", "true");
+  // the toolbar button is an equivalent control: closing the tray again
+  await page.click('#ctrlBar [data-k="tray"]'); expect(await page.evaluate("RIG.st.tray")).toBe(false);
+  // a bulkhead seat offers no seat-back tray and fixed armrests
+  await page.evaluate("ui.select('1C');enterSeat('1C','F')"); await expect.poll(() => page.evaluate("RIG.id")).toBe("1C");
+  const sup1 = (await page.evaluate("RIG.sup")) as any; expect(sup1.tray).toBe(false); expect(sup1.armL).toBe(false); expect(sup1.armR).toBe(false); expect(sup1.shade).toBe(false);
+  await page.evaluate("ui.select('14A');enterSeat('14A','F')"); await expect.poll(() => page.evaluate("RIG.id")).toBe("14A");
   // recline preview shows the effect behind, then returns to the seat
   await page.keyboard.press("r");
   await expect(page.locator("#reclineInfo")).toBeVisible();
   await expect(page.locator("#reclineInfo")).toContainText("Modelled space at knee height");
   await page.click("#reclineDone");
-  await expect.poll(() => page.evaluate("view"), { timeout: 240_000 }).toBe("F");
-  // Playground: passengers appear; a shove wobbles within bounds and everyone recovers in place
-  await page.click("#sceneBtn"); await page.click("#playSw");
+  await expect.poll(() => page.evaluate("view"), { timeout: 60_000 }).toBe("F");
+  // Playground: passengers appear; slapstick stays within bounds and everyone recovers in place
+  await page.click("#sceneBtn"); await page.click("#playSw"); await page.keyboard.press("Escape");
   await expect.poll(() => page.evaluate("window.PEOPLE ? PEOPLE.list.length : 0"), { timeout: 60_000 }).toBeGreaterThan(1);
   await expect(page.locator("#playPanel")).toBeVisible();
-  await page.evaluate("playAction('shove')");
-  for (let i = 0; i < 6; i++) { expect(await page.evaluate("peopleCheck()")).toEqual([]); await page.waitForTimeout(400); }
-  await page.evaluate("playAction('tap')"); await page.waitForTimeout(1500);
-  await page.evaluate("resetAll()");
+  for (const a of ["nudge", "shove", "tap", "excuse"]) { await page.evaluate(`playAction('${a}')`); for (let i = 0; i < 4; i++) { expect(await page.evaluate("peopleCheck()")).toEqual([]); await page.waitForTimeout(500); } await page.evaluate("resetAll()"); }
   expect(await page.evaluate("peopleCheck()")).toEqual([]);
-  // aisle access: two people must stand at 29 in pitch, then everything resets
+  // aisle access from 14A: two people must stand at 29 in pitch, then everything resets
   await page.evaluate("startExitDemo()");
   await expect(page.locator("#exitPanel")).toBeVisible();
   await page.click("#exSkip");
@@ -138,10 +149,17 @@ test("cabin objects, recline preview, camera interruption, playground and aisle 
   expect(await page.evaluate("peopleCheck()")).toEqual([]);
   await page.click("#exReset");
   await expect.poll(() => page.evaluate("view"), { timeout: 30_000 }).toBe("F");
-  // performance numbers measured in this (software-rendered) browser
+  expect(await page.evaluate("peopleCheck()")).toEqual([]);
+  // from an aisle seat the route is direct
+  await page.evaluate("ui.select('17C');enterSeat('17C','F')"); await expect.poll(() => page.evaluate("RIG.id")).toBe("17C");
+  await page.evaluate("startExitDemo(); skipExitDemo()"); // no-op if the short direct route already finished
+  await expect(page.locator("#exitPanel")).toContainText("0 people to pass");
+  await expect(page.locator("#exitPanel")).toContainText("Aisle seat: direct route");
+  await page.click("#exReset");
   const perf = await page.evaluate("PERF.stats()");
   mkdirSync("test-results", { recursive: true }); writeFileSync("test-results/perf-swiftshader.json", JSON.stringify(perf, null, 1));
   expect(errs).toEqual([]);
+  await ctx.close();
 });
 
 test("rendering fallback without WebGL and no horizontal overflow on mobile", async ({ browser }) => {

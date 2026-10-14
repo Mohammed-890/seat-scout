@@ -252,7 +252,7 @@ const EXIT = { running: false, steps: [], cancel: false };
 function startExitDemo() {
   if (EXIT.running || !RIG.id) return; const me = selected, s = SEATS[me]; if (!["F", "W", "A", "L"].includes(view)) return;
   if (!PEOPLE.on) populate("exit"); else if (!PEOPLE.list.length) populate("playground");
-  const inner = between(me), blockers = inner.map((id) => PEOPLE.list.find((P) => P.seat === id)).filter(Boolean), pitch = s.pitch, roomy = pitch >= 32;
+  const inner = between(me), blockers = [...inner].reverse().map((id) => PEOPLE.list.find((P) => P.seat === id)).filter(Boolean), pitch = s.pitch, roomy = pitch >= 32;
   const trays = (RIG.st.tray ? 1 : 0); const side = aisleSideOf(s.letter);
   EXIT.running = true; EXIT.cancel = false; EXIT.me = me; const prevView = view; FREECAM.pos.copy(camera.position); FREECAM.quat.copy(camera.quaternion); view = "X"; ui.sync();
   const steps = []; if (RIG.st.tray) steps.push(["Fold your tray table", (n) => { act("tray"); setTimeout(n, 1200); }]);
@@ -274,7 +274,7 @@ function stopExitDemo(reset = true) { EXIT.cancel = true; EXIT.running = false; 
   if (RIG.id) { if (!RIG.st.belt) act("belt"); } view = "F"; ui.sync(); dirty = true; const el = document.getElementById("exitPanel"); if (el) el.hidden = true; renderPlayPanel(); }
 function skipExitDemo() { if (!EXIT.running && view !== "X") return; EXIT.cancel = true; TW.clear();
   const S = EXIT.summary; const inner = between(S.me);
-  inner.map((id) => PEOPLE.list.find((P) => P.seat === id)).filter(Boolean).forEach((P, i) => { P.seq = []; P.seqDone = null; let end;
+  [...inner].reverse().map((id) => PEOPLE.list.find((P) => P.seat === id)).filter(Boolean).forEach((P, i) => { // aisle side first P.seq = []; P.seqDone = null; let end;
     if (S.roomy) end = poseFor("kneesAside", P.side);
     else if (i === 0) end = poseFor("steppedBack", P.side);
     else { P.base = seatRoot(P.seat); P.base.x += 0.48 * P.side; P.slid = true; end = { ...poseFor("steppedBack", P.side), _root: [0.62 * P.side, -0.02, 0.62 + 0.55 * i] }; }

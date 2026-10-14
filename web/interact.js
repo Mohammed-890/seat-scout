@@ -39,7 +39,9 @@ function armrestsFor(id) {
 function lampPos(s) { const side = s.letter <= "C" ? -1 : 1, k = { A: 2, B: 1, C: 0, D: 0, E: 1, F: 2 }[s.letter]; return new THREE.Vector3(side * (1.33 + k * 0.08), 1.603, backZ[s.row] - 0.34 + 0.02); }
 function nearestShade(s) { const side = s.letter <= "C" ? -1 : 1, z = backZ[s.row] - 0.25; let b = null; for (const sh of SHADES) if (sh.side === side && (!b || Math.abs(sh.z - z) < Math.abs(b.z - z))) b = sh; return b; }
 function pivotRot(meshes, pivot, axis) { const base = meshes.map((m) => m.matrix.clone()), T = new THREE.Matrix4(), R = new THREE.Matrix4(), Ti = new THREE.Matrix4();
-  return (ang) => { T.makeTranslation(pivot.x, pivot.y, pivot.z); R.makeRotationAxis(axis, ang); Ti.makeTranslation(-pivot.x, -pivot.y, -pivot.z); const M = T.clone().multiply(R).multiply(Ti); meshes.forEach((m, i) => m.matrix.multiplyMatrices(M, base[i])); renderer.shadowMap.needsUpdate = true; dirty = true; }; }
+  return (ang) => { T.makeTranslation(pivot.x, pivot.y, pivot.z); R.makeRotationAxis(axis, ang); Ti.makeTranslation(-pivot.x, -pivot.y, -pivot.z); const M = T.clone().multiply(R).multiply(Ti); meshes.forEach((m, i) => m.matrix.multiplyMatrices(M, base[i])); shadowSoon(); dirty = true; }; }
+/* moving parts refresh the (static) shadow map once they stop, not on every animation frame */
+let shadowT = 0; function shadowSoon() { clearTimeout(shadowT); shadowT = setTimeout(() => { renderer.shadowMap.needsUpdate = true; dirty = true; }, 120); }
 const hiMat = new Map(); // per-rig cloned materials for the hover/focus glow
 function glowable(m) { const mat = m.material.clone(); mat.emissive = new THREE.Color(0, 0, 0); m.material = mat; hiMat.set(m, mat); return m; }
 
@@ -69,7 +71,7 @@ function buildBelt(k) { // k: 0 = unfastened, 1 = fastened (interpolated for the
   }
   g.position.set(seatX(s.letter), 0, backZ[s.row]); return g;
 }
-function setBelt(k) { if (RIG.beltMesh) { RIG.group.remove(RIG.beltMesh); RIG.beltMesh.traverse((o) => { if (!o.isMesh) return; if (o.geometry.type === "BufferGeometry") o.geometry.dispose(); if (hiMat.has(o)) { hiMat.delete(o); o.material.dispose(); } }); } RIG.beltMesh = buildBelt(k); RIG.beltMesh.userData.ctl = "belt"; RIG.group.add(RIG.beltMesh); RIG.beltMesh.traverse((o) => { if (o.isMesh) { o.userData.ctl = "belt"; glowable(o); } }); renderer.shadowMap.needsUpdate = true; dirty = true; }
+function setBelt(k) { if (RIG.beltMesh) { RIG.group.remove(RIG.beltMesh); RIG.beltMesh.traverse((o) => { if (!o.isMesh) return; if (o.geometry.type === "BufferGeometry") o.geometry.dispose(); if (hiMat.has(o)) { hiMat.delete(o); o.material.dispose(); } }); } RIG.beltMesh = buildBelt(k); RIG.beltMesh.userData.ctl = "belt"; RIG.group.add(RIG.beltMesh); RIG.beltMesh.traverse((o) => { if (o.isMesh) { o.userData.ctl = "belt"; glowable(o); } }); shadowSoon(); dirty = true; }
 
 function rigDetach() {
   TW.clear();
@@ -123,7 +125,7 @@ function stateText(k) { const st = RIG.st; return k === "shade" ? (st.shade === 
 function act(k) {
   if (!RIG.id) return; if (k !== "exit" && k !== "recline" && !RIG.sup[k]) { ui.toast(RIG.why[k] || "Not available on this seat"); return; }
   RIG.tried.add(k); sfx(k);
-  if (k === "shade") { const sh = RIG.shade, from = sh.sm.scale.y, to = from > 0.5 ? 0.02 : 1; RIG.st.shade = to > 0.5 ? "down" : "up"; TW.add(700, (e) => { sh.set(from + (to - from) * e); renderer.shadowMap.needsUpdate = true; dirty = true; }); }
+  if (k === "shade") { const sh = RIG.shade, from = sh.sm.scale.y, to = from > 0.5 ? 0.02 : 1; RIG.st.shade = to > 0.5 ? "down" : "up"; TW.add(700, (e) => { sh.set(from + (to - from) * e); shadowSoon(); dirty = true; }); }
   else if (k === "tray") { const p = RIG.pivots.tray, open = !RIG.st.tray; RIG.st.tray = open;
     if (open) TW.add(260, (e) => p.latch(e * Math.PI / 2), () => TW.add(820, (e) => p.rot(e * p.open)));
     else TW.add(820, (e) => p.rot((1 - e) * p.open), () => TW.add(260, (e) => p.latch((1 - e) * Math.PI / 2))); }

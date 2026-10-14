@@ -603,7 +603,7 @@ function overlays(rects){poolUsed=new Set();
   for(const [k,el] of pool)if(!poolUsed.has(k)){el.remove();pool.delete(k)}}
 
 /* ---------- render loop (on demand) ---------- */
-function renderView(c){if(typeof renderSky==="function"&&fades.studio<0.999){renderSky(c);renderer.clearDepth()}renderer.render(scene,c)}
+function renderView(c){if(typeof renderSky==="function"&&fades.studio<0.999)renderSky(c);else scene.background=null;renderer.render(scene,c)}
 /* Frame-time measurement in the running browser (CPU time to submit a frame, plus the interval between frames
    while animating). Shown in Engineering; nothing is claimed without this measurement. */
 const PERF={n:0,cpu:[],gap:[],last:0,sample(ms,t){this.n++;this.cpu.push(ms);if(this.cpu.length>240)this.cpu.shift();if(this.last&&t-this.last<500){this.gap.push(t-this.last);if(this.gap.length>240)this.gap.shift()}this.last=t},
