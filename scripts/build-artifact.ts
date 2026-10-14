@@ -12,8 +12,7 @@ ${THREE_SCRIPTS.map((s) => `<script src="${s}"></script>`).join("\n")}
 <script>${esc(readFileSync("artifact/core.tmp.js", "utf8"))}</script>
 <script>${esc(readFileSync("web/globals.js", "utf8"))}</script>
 <script>window.__EMBEDDED__=${esc(JSON.stringify(embedded))};</script>
-<script type="text/plain" id="src-cabin3d">${esc(readFileSync("web/cabin3d.js", "utf8"))}</script>
-<script type="text/plain" id="src-ui">${esc(readFileSync("web/ui.js", "utf8"))}</script>
+${["cabin3d", "interact", "scenery", "people", "flat", "ui"].map((m) => `<script type="text/plain" id="src-${m}">${esc(readFileSync(`web/${m}.js`, "utf8"))}</script>`).join("\n")}
 <script>${esc(readFileSync("web/boot.js", "utf8"))}</script>
 `;
 mkdirSync("artifact", { recursive: true });

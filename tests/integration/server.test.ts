@@ -43,3 +43,35 @@ test("API journey: chat, demo seat taken, select", async () => {
   const cfg = await (await fetch(base + "/api/config", { headers: { cookie: cookie2 } })).json();
   assert.equal(cfg.snapshotVersion, 1, "another session is unaffected");
 });
+
+test("streaming: NDJSON carries the real trace events before the final result", async () => {
+  const s = await post("/api/session", {});
+  const cookie = s.headers.get("set-cookie")!.split(";")[0];
+  const r = await fetch(base + "/api/chat", { method: "POST", headers: { "content-type": "application/json", accept: "application/x-ndjson", cookie }, body: JSON.stringify({ text: "1 adult, aisle, total £10" }) });
+  assert.match(r.headers.get("content-type")!, /ndjson/);
+  const lines = (await r.text()).trim().split("\n").map((l) => JSON.parse(l));
+  const events = lines.filter((l) => l.type === "event").map((l) => l.event);
+  const result = lines.find((l) => l.type === "result").result;
+  assert.equal(lines[lines.length - 1].type, "result");
+  assert.ok(events.length >= 4);
+  assert.deepEqual(events.map((e) => e.kind), result.trace.map((e: any) => e.kind), "streamed events are the same events as the final trace");
+});
+
+test("one turn at a time per session, and a retried request id is not run twice", async () => {
+  const s = await post("/api/session", {});
+  const cookie = s.headers.get("set-cookie")!.split(";")[0];
+  await post("/api/chat", { text: "2 adults, total £20, together" }, cookie);
+  // the tool-timeout demo really waits for the 3 s tool timeout, so a second request arrives mid-turn
+  const slow = post("/api/demo/tool-timeout", { clientId: "req_slow01" }, cookie);
+  await new Promise((r) => setTimeout(r, 300));
+  const clash = await post("/api/chat", { text: "Cheaper." }, cookie);
+  assert.equal(clash.status, 409, "a concurrent turn on the same session is refused, not interleaved");
+  const first = await (await slow).json();
+  assert.ok(first.trace.some((e: any) => e.kind === "tool_error"));
+  const rev = first.state.revision;
+  const again = await (await post("/api/demo/tool-timeout", { clientId: "req_slow01" }, cookie)).json();
+  assert.equal(again.replayed, true, "same request id returns the stored answer");
+  assert.deepEqual(again.groups, first.groups);
+  const cfg = await (await fetch(base + "/api/config", { headers: { cookie } })).json();
+  assert.equal(cfg.state.revision, rev, "the replay did not run the turn again");
+});
