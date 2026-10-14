@@ -10,7 +10,7 @@
   }
  },
  {
-  "t": 10,
+  "t": 14,
   "kind": "parsed",
   "title": "Rule-based interpretation (en): search",
   "data": {
@@ -43,7 +43,7 @@
   }
  },
  {
-  "t": 10,
+  "t": 15,
   "kind": "tool_call",
   "title": "updateTripPreferences",
   "data": {
@@ -71,7 +71,7 @@
   }
  },
  {
-  "t": 11,
+  "t": 16,
   "kind": "tool_result",
   "title": "updateTripPreferences → changed travellers, budget.totalGBP, together, prefs.window, prefs.clearView, prefs.cheap",
   "data": {
@@ -132,7 +132,7 @@
   "status": "ok"
  },
  {
-  "t": 11,
+  "t": 16,
   "kind": "state",
   "title": "Constraints vs preferences",
   "data": {
@@ -151,7 +151,7 @@
   }
  },
  {
-  "t": 11,
+  "t": 16,
   "kind": "tool_call",
   "title": "findAdjacentSeatGroups",
   "data": {
@@ -161,7 +161,7 @@
   }
  },
  {
-  "t": 21,
+  "t": 28,
   "kind": "tool_result",
   "title": "findAdjacentSeatGroups → ok: 9/60 groups feasible",
   "data": {
@@ -257,7 +257,7 @@
   ]
  },
  {
-  "t": 22,
+  "t": 28,
   "kind": "candidates",
   "title": "60 side-by-side groups of 3 considered, 9 feasible",
   "data": {
@@ -265,7 +265,7 @@
   }
  },
  {
-  "t": 22,
+  "t": 28,
   "kind": "exclusions",
   "title": "Excluded: UNAVAILABLE ×47, OVER_TOTAL_BUDGET ×16, EXIT_ROW_POLICY ×4",
   "data": {
@@ -443,7 +443,7 @@
   ]
  },
  {
-  "t": 22,
+  "t": 28,
   "kind": "scores",
   "title": "Ranked by preferences: 18A+18B+18C (8.4), 19A+19B+19C (8.4), 21D+21E+21F (8.4)",
   "data": [
@@ -491,7 +491,7 @@
   ]
  },
  {
-  "t": 22,
+  "t": 28,
   "kind": "tool_call",
   "title": "validateRecommendation",
   "data": {
@@ -517,7 +517,7 @@
   }
  },
  {
-  "t": 23,
+  "t": 29,
   "kind": "tool_result",
   "title": "validateRecommendation → valid",
   "data": {
@@ -570,7 +570,7 @@
   ]
  },
  {
-  "t": 23,
+  "t": 29,
   "kind": "validation",
   "title": "Final validation: 3 group(s) accepted against snapshot v1",
   "data": {
@@ -616,11 +616,11 @@
   ]
  },
  {
-  "t": 23,
+  "t": 29,
   "kind": "final",
   "title": "Answer ready: 3 validated group(s)",
   "data": {
-   "latencyMs": 23
+   "latencyMs": 29
   },
   "seats": [
    "18A",
