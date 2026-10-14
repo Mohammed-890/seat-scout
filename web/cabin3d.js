@@ -492,7 +492,8 @@ const outSide=id=>SEATS[id].letter<="C"?-1:1;
 function viewAngles(id,m){const v=VIEWS[m],o=outSide(id);return {y:(m==="W"||m==="A")?v.y*o:v.y,p:v.p}}
 function eyeFor(id){const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),EYE_Y,backZ[s.row]-0.01)}
 /* in the window view a window-seat passenger leans toward the glass; others stay upright */
-let lean=0,leanGoal=0;function leanFor(id,m){return m==="W"&&SEATS[id].position==="window"?1:0}
+let lean=0,leanGoal=0;function leanFor(id,m){if(m==="A"&&window.PEOPLE&&PEOPLE.on&&SEATS[id].position!=="aisle")return 1.5; // sit back toward the window to see neighbours
+  return m==="W"&&SEATS[id].position==="window"?1:0}
 function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*0.09*lean,-0.02*lean,-0.07*lean)}
 const _m=new THREE.Matrix4(),_up=new THREE.Vector3(0,1,0);
 function quatLook(pos,tgt){_m.lookAt(pos,tgt,_up);return new THREE.Quaternion().setFromRotationMatrix(_m)}
