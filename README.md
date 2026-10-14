@@ -38,7 +38,7 @@ Comparison of two seats is available from the seat panel as a small table. Trace
 | | |
 |---|---|
 | ![Window view from 14A](docs/screenshots/desktop-seat-window.png) | ![Legroom view from 17C](docs/screenshots/desktop-legroom.png) |
-| ![Mobile: compact bottom sheet](docs/screenshots/mobile-aircraft.png) | ![Mobile: assistant](docs/screenshots/mobile-assistant.png) |
+| ![Mobile: window view from 21A with the compact panel](docs/screenshots/mobile-seat.png) | ![Mobile: assistant](docs/screenshots/mobile-assistant.png) |
 
 Screenshots were rendered with software WebGL in a headless browser. The 3D cabin and scenery are simplified procedural models, not photorealistic.
 
