@@ -22,8 +22,9 @@ async function ask(page: Page, text: string) {
   const before = await page.locator(".msg.bot").count();
   await page.fill("#q", text); await page.click("#send");
   await expect(page.locator(".msg.bot")).toHaveCount(before + 1);
-  await expect(page.locator(".msg.bot").last()).not.toHaveText(/^Working…/);
-  return page.locator(".msg.bot").last();
+  const msg = page.locator(".msg.bot").nth(before); // a fixed message, not "whichever is last"
+  await expect(msg).not.toHaveText(/^Working…/);
+  return msg;
 }
 async function recovery(page: Page, id: string) {
   await page.click("#aboutBtn"); await page.click('.ab nav [data-x="recovery"]'); await page.click(`#${id}`);
@@ -110,7 +111,8 @@ test("camera interruption: going back mid-transition never leaves controls disab
   await page.evaluate("ui.select('14A');enterSeat('14A','F');backToAircraft()");
   await expect.poll(() => page.evaluate("view"), { timeout: 240_000 }).toBe("AIR");
   await expect(page.locator('.views button[data-v="F"]')).toBeEnabled();
-  await page.evaluate("enterSeat('14A','F')"); await page.click("#skip").catch(() => {});
+  await page.evaluate("enterSeat('14A','F')");
+  await page.locator("#skip").click({ timeout: 20_000 }).catch(() => {}); // the transition may already have finished
   await expect.poll(() => page.evaluate("view"), { timeout: 240_000 }).toBe("F");
   await expect(page.locator('.views button[data-v="AIR"]')).toBeEnabled();
   expect(errs).toEqual([]);

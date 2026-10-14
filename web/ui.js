@@ -98,7 +98,9 @@ function markOutdated(r){for(const c of logEl.querySelectorAll(".best:not(.outda
 function bestCard(r){const g=r.groups[0],c=document.createElement("div");c.className="best";c.dataset.rev=r.state.revision;c.dataset.snap=r.snapshotVersion;const n=g.seats.length;
   const why=cap(g.strengths.join(", "))||"Meets your requirements";const trade=g.compromises.length?`Trade-off: ${g.compromises.join(", ")}.`:"";
   const req=reqLine(r.message),notes=notesOf(r.message),alts=r.groups.slice(1);
-  c.innerHTML=`${req?`<p class="reqs">For ${esc(req)}</p>`:""}
+  /* when the message isn't the standard summary (availability changed, or a live-AI answer), show its opening */
+  const lead=req?"":(r.message||"").split(/\s(?=Updated best option)/)[0].slice(0,280);
+  c.innerHTML=`${req?`<p class="reqs">For ${esc(req)}</p>`:lead?`<p class="lead">${esc(lead)}</p>`:""}
    <div class="best-h"><b>${g.seats.join(" + ")}</b><span>£${g.totalGBP} <small>${n>1?"total":"per seat"}</small></span></div>
    ${n>1?`<p class="mode">${g.seats.map(id=>`${id} ${money(SEATS[id].price)}`).join(" · ")}</p>`:""}
    <p>${esc(why)}.</p>${trade?`<p class="trade">${esc(trade)}</p>`:""}${notes.map(t=>`<p class="mode">${esc(t)}</p>`).join("")}
