@@ -12,6 +12,7 @@ test.beforeEach(async ({ page }) => {
 });
 const errorsOf = (page: Page) => { const errs: string[] = []; page.on("pageerror", (e) => errs.push(String(e))); return errs; };
 async function ask(page: Page, text: string) {
+  await page.evaluate("typeof setSheet==='function'&&isMobile()&&sheetState!=='expanded'&&setSheet('expanded')");
   if (!(await page.locator("#q").isVisible())) await page.click('.tabs [data-t="c"]');
   const before = await page.locator(".msg.bot").count();
   await page.fill("#q", text); await page.click("#send");
@@ -169,7 +170,7 @@ test("reduced motion: seat transitions complete immediately", async ({ browser }
   await page.route("https://cdn.jsdelivr.net/npm/three@0.147.0/**", (r) => r.fulfill({ body: readFileSync(`node_modules/three/${r.request().url().split("three@0.147.0/")[1]}`, "utf8"), contentType: "application/javascript" }));
   await page.route("https://fonts.googleapis.com/**", (r) => r.fulfill({ body: "", contentType: "text/css" }));
   await page.goto("http://127.0.0.1:8790/"); await expect(page.locator("#loading")).toHaveClass(/done/);
-  expect(await page.evaluate("ui.select('20C');enterSeat('20C','F');view")).toBe("F");
+  expect(await page.evaluate("ui.select('17C');enterSeat('17C','F');view")).toBe("F");
   expect(await page.evaluate("act('tray');RIG.st.tray")).toBe(true);
   expect(await page.evaluate("TW.list.length")).toBe(0);
   expect(await page.evaluate("typeof SKY !== 'undefined' ? SKY.motion : false")).toBe(false);

@@ -93,7 +93,7 @@ export function selectSeats(session: Session, seats: string[]): TurnResult {
   session.state = { ...session.state, selection: { seats: v.groups[0].seats, snapshotVersion: session.availability.version } };
   const g = session.ds.seats.get(seats[0])!;
   const card = explainGroup({ id: seats.join("+"), seats: v.groups[0].seats, row: g.row, block: g.block, totalGBP: v.groups[0].totalGBP!, ...score({ id: "", seats: v.groups[0].seats, row: g.row, block: g.block, totalGBP: v.groups[0].totalGBP! }, session.state, session.ds) }, session.state, session.ds);
-  return { ...blank(session, trace, `Demo seats selected: ${seats.join(", ")} (total £${v.groups[0].totalGBP}, sample prices). This is a prototype: nothing has been booked with any airline.`, t0), groups: [card] };
+  return { ...blank(session, trace, `Demo seats selected: ${seats.join(", ")} (total £${v.groups[0].totalGBP}, sample prices). This is a prototype: nothing has been booked with any airline.`, t0), outcome: "selected", groups: [card] };
 }
 
 function blank(session: Session, trace: Trace, message: string, t0: number): TurnResult {
