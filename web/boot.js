@@ -1,6 +1,5 @@
 /* Boot: choose the API (server or in-page preview), load the canonical data, define 3D globals, start the UI.
-   Modules: cabin3d + interact + ui load first; scenery loads right after the first frame; people (passengers)
-   loads only when Cabin Playground or "Try getting out" is first used. */
+   Modules: cabin3d + ui load first; the window scenery loads right after the first frame. */
 "use strict";
 (async function boot() {
   const embedded = window.__EMBEDDED__ || null;
@@ -25,7 +24,7 @@
   window.NO3D = !gl || /[?&]no3d\b/.test(location.search);
   try {
     if (window.NO3D) await window.loadModule("flat");
-    else { await window.loadModule("cabin3d"); await window.loadModule("interact"); }
+    else await window.loadModule("cabin3d");
   } catch (e) { console.error(e); window.NO3D = true; await window.loadModule("flat"); }
   await window.loadModule("ui");
   if (!window.NO3D) (window.requestIdleCallback || setTimeout)(() => window.loadModule("scenery").then(() => { window.FRAME_HOOKS && FRAME_HOOKS.push((t, dt) => skyFrame(dt)); window.onSceneryReady && window.onSceneryReady(); }).catch((e) => console.error(e)));

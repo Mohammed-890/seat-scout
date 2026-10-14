@@ -300,15 +300,6 @@ for(const it of instances.values()){const im=new THREE.InstancedMesh(it.geo,it.m
  const n=Math.floor((ZE-BULK)/0.6);const im=new THREE.InstancedMesh(dotG,dotM,n*2);let i=0;
  for(let k=0;k<n;k++)for(const sx of[-1,1])im.setMatrixAt(i++,new THREE.Matrix4().makeTranslation(sx*(AISLE/2+0.01),0.017,BULK+0.3+k*0.6));scene.add(im)}
 
-/* Seat parts registry: hide the instanced copies of one seat's parts and return standalone meshes in the same
-   place, so the selected seat's tray, armrests, belt and back can move without touching the other 179 seats. */
-const ZERO=new THREE.Matrix4().makeScale(0,0,0);
-function seatPartEntries(id,parts){const out=[];for(const im of instMeshes){const it=im.userData.it;for(let i=0;i<it.tags.length;i++)if(it.tags[i]===id&&parts.includes(it.parts[i]))out.push({im,i,geo:it.geo,mat:it.mat,matrix:it.list[i],part:it.parts[i],cast:it.cast})}return out}
-function detachSeatParts(id,parts){const ents=seatPartEntries(id,parts),meshes=[];
-  for(const e of ents){e.im.setMatrixAt(e.i,ZERO);e.im.instanceMatrix.needsUpdate=true;const m=new THREE.Mesh(e.geo,e.mat);m.matrixAutoUpdate=false;m.matrix.copy(e.matrix);m.castShadow=e.cast;m.receiveShadow=true;m.userData.part=e.part;meshes.push(m)}
-  return {meshes,restore(){for(const e of ents){e.im.setMatrixAt(e.i,e.matrix);e.im.instanceMatrix.needsUpdate=true}for(const m of meshes)m.parent&&m.parent.remove(m);renderer.shadowMap.needsUpdate=true;dirty=true}}}
-
-/* ---------- outside: wing, engine, sky ---------- */
 /* Lofted airfoil surfaces (wings, sharklets, fin, stabilisers). Each station: leading-edge point o, chord c along +z,
    thickness ratio t along the unit vector th. NACA-style thickness, light camber; indexed so normals are smooth,
    with a separate trailing-edge seam so the TE stays crisp. Proportions are A320-like, not an engineering model. */
@@ -456,7 +447,7 @@ function aimSelLight(id){const s=SEATS[id],x=seatX(s.letter),z=backZ[s.row]-0.25
    CAMERA: aircraft orbit  ⇄  planned path  ⇄  seated eye (rotate only)
    ===================================================================== */
 const app=document.getElementById("app"),markersEl=document.getElementById("markers"),fadeEl=document.getElementById("fade");
-let view="AIR",selected="14A",hover=null,recs=[],cmp={a:null,b:null},seatView="F",dirty=true,anim=null,trans=null;
+let view="AIR",selected="14A",hover=null,recs=[],seatView="F",dirty=true,anim=null,trans=null;
 /* seats linked from the engineering trace: tone rec | excl | sel */
 let focus={seats:[],tone:null};
 let yaw=0,pitch=-0.1,transW=0;const eye=new THREE.Vector3();
@@ -469,8 +460,8 @@ const FIT_SEG=[[[0,CY,Z0-5.4],[0,CY+0.9,ZE+9.6]],[[0,-1.05,Z0],[0,-1.05,ZE]],[[-
 const FIT_PTS=[];for(const [p,q] of FIT_SEG)for(let i=0;i<=6;i++){const t=i/6;FIT_PTS.push(new THREE.Vector3(p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t))}
 const fitCam=new THREE.PerspectiveCamera();let fitCache={key:"",d:40};
 /* panels the aircraft should not sit under (desktop card and dock, mobile sheet), in canvas pixels */
-function fitObstacles(){const cr=canvas.getBoundingClientRect(),out=[];for(const id of["card","dock","sheet","ctrlBar"]){const el=document.getElementById(id);if(!el||el.hidden)continue;const st=getComputedStyle(el);if(st.display==="none"||st.visibility==="hidden"||Number(st.opacity)<0.1||(id==="dock"&&el.classList.contains("collapsed")))continue;
-  if(id==="sheet"&&st.display==="contents")continue;const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;out.push([r.left-cr.left-12,r.top-cr.top-12,r.right-cr.left+12,r.bottom-cr.top+12])}return {w:cr.width,h:cr.height,rects:out}}
+function fitObstacles(){const cr=canvas.getBoundingClientRect(),out=[];for(const id of["panel"]){const el=document.getElementById(id);if(!el||el.hidden)continue;const st=getComputedStyle(el);if(st.display==="none"||st.visibility==="hidden"||Number(st.opacity)<0.1||(id==="dock"&&el.classList.contains("collapsed")))continue;
+  const r=el.getBoundingClientRect();if(r.width<2||r.height<2)continue;out.push([r.left-cr.left-12,r.top-cr.top-12,r.right-cr.left+12,r.bottom-cr.top+12])}return {w:cr.width,h:cr.height,rects:out}}
 /* Centre the projection on a free screen rectangle (beside or above the seat card, left of the dock, below the
    top bar) and solve the distance that fits the aircraft inside it. The larger result wins. */
 function setOffsetXY(c,w,h,dx,dy){if(Math.abs(dx)<0.5&&Math.abs(dy)<0.5){if(c.view&&c.view.enabled)c.clearViewOffset();return}
@@ -487,13 +478,12 @@ function airLayout(w,h){const ob=fitObstacles();const key=[w,h,camera.fov,air.az
     let lo=6,hi=300;if(!fits(hi))continue;for(let i=0;i<22;i++){const m=(lo+hi)/2;if(fits(m))hi=m;else lo=m}if(!best||hi<best.d)best={dx,dy,d:hi}}
   airLay=Object.assign({key},best||{dx:0,dy:0,d:90});return airLay}
 function fitDist(){return airLay.d}
-const VIEWS={F:{y:0,p:-0.1},W:{y:1.5,p:-0.2},A:{y:-1.25,p:-0.12},L:{y:0,p:-0.86}};
+const VIEWS={F:{y:0,p:-0.1},W:{y:1.5,p:-0.2},L:{y:0,p:-0.86}};
 const outSide=id=>SEATS[id].letter<="C"?-1:1;
-function viewAngles(id,m){const v=VIEWS[m],o=outSide(id);return {y:(m==="W"||m==="A")?v.y*o:v.y,p:v.p}}
+function viewAngles(id,m){const v=VIEWS[m]||VIEWS.F,o=outSide(id);return {y:m==="W"?v.y*o:v.y,p:v.p}}
 function eyeFor(id){const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),EYE_Y,backZ[s.row]-0.01)}
 /* in the window view a window-seat passenger leans toward the glass; others stay upright */
-let lean=0,leanGoal=0;function leanFor(id,m){if(m==="A"&&window.PEOPLE&&PEOPLE.on&&SEATS[id].position!=="aisle")return 1.5; // sit back toward the window to see neighbours
-  return m==="W"&&SEATS[id].position==="window"?1:0}
+let lean=0,leanGoal=0;function leanFor(id,m){return m==="W"&&SEATS[id].position==="window"?1:0}
 function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*0.09*lean,-0.02*lean,-0.07*lean)}
 const _m=new THREE.Matrix4(),_up=new THREE.Vector3(0,1,0);
 function quatLook(pos,tgt){_m.lookAt(pos,tgt,_up);return new THREE.Quaternion().setFromRotationMatrix(_m)}
@@ -521,31 +511,23 @@ function makeTransition(from,path,dir,done){let pts=[from.pos,...path.pts],quats
       applyFades({ext:1-sstep(0.05,0.4,w),studio:1-sstep(0.5,0.86,w),upper:sstep(0.88,1,w)});selGlow=1-sstep(0.55,0.85,w);
       if(k>=1){done();return false}return true},finish(){this.step(t0+dur+1)}}}
 function cutTo(fn){if(reduce){fn();dirty=true;return}fadeEl.classList.add("on");setTimeout(()=>{fn();dirty=true;requestAnimationFrame(()=>requestAnimationFrame(()=>fadeEl.classList.remove("on")))},220)}
-function setSeatState(id,m){selected=id;seatView=m;const a=viewAngles(id,m);eye.copy(eyeFor(id));yaw=a.y;pitch=a.p;openShadesNear(eye.z);placeSun(eye);applyFades({ext:0,studio:0,upper:1});selGlow=0;window.onSeatEnter&&onSeatEnter(id)}
-const leaveSeat=()=>{window.onSeatLeave&&onSeatLeave()};
+function setSeatState(id,m){selected=id;seatView=m;const a=viewAngles(id,m);eye.copy(eyeFor(id));yaw=a.y;pitch=a.p;openShadesNear(eye.z);placeSun(eye);applyFades({ext:0,studio:0,upper:1});selGlow=0}
+
 function enterSeat(id,m="F"){if(trans)trans.finish();if(SEATS[id].taken)return;
   if(view==="AIR"){selected=id;view="T";const from={pos:camera.position.clone(),quat:camera.quaternion.clone()};airGoal.stash={az:air.az,pol:air.pol,zoom:air.zoom,target:air.target.clone()};
     openShadesNear(eyeFor(id).z);placeSun(eyeFor(id));
-    trans=makeTransition(from,seatPath(id),1,()=>{trans=null;view=m;if(!isMobile()){$("dock").classList.add("collapsed");$("dockOpen").classList.add("on")}setSeatState(id,"F");if(m!=="F")rotateTo(m);ui.sync();applyHighlights()});ui.sync();applyHighlights();if(reduce)trans.finish();return}
-  if(view==="CMP"){cutTo(()=>{view=m;setSeatState(id,m);ui.sync();applyHighlights()});return}
-  if(id!==selected){leaveSeat();cutTo(()=>{view=m;setSeatState(id,m);ui.sync()});return}
+    trans=makeTransition(from,seatPath(id),1,()=>{trans=null;view=m;setSeatState(id,"F");if(m!=="F")rotateTo(m);ui.sync();applyHighlights()});ui.sync();applyHighlights();if(reduce)trans.finish();return}
+  if(id!==selected){cutTo(()=>{view=m;setSeatState(id,m);ui.sync()});return}
   rotateTo(m)}
 function rotateTo(m){seatView=m;view=m;const a=viewAngles(selected,m);if(reduce){yaw=a.y;pitch=a.p;dirty=true;ui.sync();return}
   const y0=yaw,p0=pitch,t0=performance.now();anim=t=>{const k=Math.min(1,(t-t0)/650),e=ease(k);yaw=y0+(a.y-y0)*e;pitch=p0+(a.p-p0)*e;if(k>=1)anim=null};ui.sync()}
-function backToAircraft(){if(trans)trans.finish();if(view==="AIR")return;leaveSeat();if(view==="R"||view==="X"){view="F";camera.position.copy(eye);camera.lookAt(eye.clone().add(dirFrom(yaw,pitch)))}
+function backToAircraft(){if(trans)trans.finish();if(view==="AIR")return;
   const st=airGoal.stash;const s=SEATS[selected];air.target.set(seatX(s.letter)*0.3,0.4,backZ[s.row]);air.zoom=st?Math.min(st.zoom,0.62):0.62;air.az=st?st.az:-0.95;air.pol=st?st.pol:0.92;airGoal.target.copy(air.target);airGoal.zoom=air.zoom;
-  if(view==="CMP"){cutTo(()=>{view="AIR";applyFades({ext:1,studio:1,upper:0});placeSun(new THREE.Vector3(0,1,ZC));aimSelLight(selected);selGlow=1;ui.sync();applyHighlights()});return}
   const sp=seatPose(selected,yaw,pitch),from={pos:sp.pos.add(leanVec(selected)),quat:sp.quat},ap=airPose();
   const p=seatPath(selected);p.pts[p.pts.length-1]=from.pos;p.quats[p.quats.length-1]=from.quat; // start from wherever the seated view is looking
   view="T";aimSelLight(selected);
-  trans=makeTransition(ap,p,-1,()=>{trans=null;view="AIR";$("dock").classList.remove("collapsed");$("dockOpen").classList.remove("on");placeSun(new THREE.Vector3(0,1,ZC));ui.sync();applyHighlights()});ui.sync();applyHighlights();if(reduce)trans.finish()}
+  trans=makeTransition(ap,p,-1,()=>{trans=null;view="AIR";placeSun(new THREE.Vector3(0,1,ZC));ui.sync();applyHighlights()});ui.sync();applyHighlights();if(reduce)trans.finish()}
 function skipTransition(){if(trans)trans.finish()}
-
-/* ---------- comparison: same view angle from two seats, split screen ---------- */
-const camB=new THREE.PerspectiveCamera(52,1,0.03,400);
-function enterCompare(a,b,m){leaveSeat();cmp.a=a;cmp.b=b;if(m)seatView=m;if(seatView==="O"||!VIEWS[seatView])seatView="F";if(trans)trans.finish();
-  cutTo(()=>{view="CMP";selected=a;applyFades({ext:0,studio:0,upper:1});selGlow=0;openShadesNear([eyeFor(a).z,eyeFor(b).z]);placeSun(eyeFor(a).clone().lerp(eyeFor(b),0.5));const an=viewAngles(a,seatView);yaw=an.y;pitch=an.p;ui.sync();applyHighlights()})}
-function cmpSetView(m){seatView=m;const an=viewAngles(cmp.a,m);if(reduce){yaw=an.y;pitch=an.p;dirty=true;ui.sync();return}const y0=yaw,p0=pitch,t0=performance.now();anim=t=>{const k=Math.min(1,(t-t0)/650),e=ease(k);yaw=y0+(an.y-y0)*e;pitch=p0+(an.p-p0)*e;if(k>=1)anim=null};ui.sync()}
 
 /* ---------- "Show my space": pitch, knee space, estimated clearance ---------- */
 const guideMat=(c,o)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthTest:false,depthWrite:false,toneMapped:false});
@@ -565,7 +547,7 @@ function buildGuides(id,hcm){const g=new THREE.Group(),s=SEATS[id],x=seatX(s.let
     {cls:gap>=0?"clr":"bad",p:new THREE.Vector3(x,KNEE_Y+0.07,Math.max(knee,ks.ahead)),t:`Est. clearance ${gap>=0?"+":""}${cm(gap)} cm`}]};
   return g}
 let guideGroups=[];
-function refreshGuides(){for(const g of guideGroups)scene.remove(g);guideGroups=[];const want=(view==="L"&&[selected])||(view==="CMP"&&seatView==="L"&&[cmp.a,cmp.b])||[];
+function refreshGuides(){for(const g of guideGroups)scene.remove(g);guideGroups=[];const want=view==="L"?[selected]:[];
   for(const id of want){const g=buildGuides(id,ui.height());g.userData.seat=id;scene.add(g);guideGroups.push(g)}dirty=true}
 
 /* ---------- seat highlighting (instance colours) ---------- */
@@ -577,17 +559,17 @@ function applyHighlights(){const air_=view==="AIR"||view==="T";for(const im of h
 let drag=null;const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 function pickSeat(ev){const r=canvas.getBoundingClientRect();ndc.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
   const hit=ray.intersectObjects(highlightMeshes,false)[0];return hit&&hit.instanceId!=null?hit.object.userData.tags[hit.instanceId]:null}
-canvas.addEventListener("pointerdown",ev=>{if(view==="T"||view==="R"||view==="X")return;drag={x:ev.clientX,y:ev.clientY,az:air.az,pol:air.pol,yaw,pitch,moved:false};canvas.setPointerCapture(ev.pointerId);anim=null});
+canvas.addEventListener("pointerdown",ev=>{if(view==="T")return;drag={x:ev.clientX,y:ev.clientY,az:air.az,pol:air.pol,yaw,pitch,moved:false};canvas.setPointerCapture(ev.pointerId);anim=null});
 canvas.addEventListener("pointermove",ev=>{if(!drag){if(view==="AIR"&&ev.pointerType==="mouse"){const id=pickSeat(ev);if(id!==hover){hover=id;canvas.style.cursor=id&&!SEATS[id].taken?"pointer":"grab";applyHighlights()}}return}
   const dx=ev.clientX-drag.x,dy=ev.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;if(!drag.moved)return;dirty=true;
   if(view==="AIR"){air.az=drag.az-dx*0.005;air.pol=Math.max(0.25,Math.min(1.42,drag.pol-dy*0.004))}
   else{yaw=Math.max(-1.8,Math.min(1.8,drag.yaw-dx*0.004));pitch=Math.max(-1.05,Math.min(0.5,drag.pitch+dy*0.0035))}});
-canvas.addEventListener("pointerup",ev=>{const d=drag;drag=null;window.__dragMoved=!!(d&&d.moved);if(!d||d.moved||view!=="AIR")return;const id=pickSeat(ev);if(id&&!SEATS[id].taken)ui.select(id);else if(id)ui.toast(`${id} is taken (sample availability)`)});
+canvas.addEventListener("pointerup",ev=>{const d=drag;drag=null;if(!d||d.moved||view!=="AIR")return;const id=pickSeat(ev);if(id&&!SEATS[id].taken)ui.select(id);else if(id)ui.toast(`${id} is taken (sample availability)`)});
 canvas.addEventListener("pointercancel",()=>{drag=null});
 canvas.addEventListener("dblclick",ev=>{if(view!=="AIR")return;const id=pickSeat(ev);if(id&&!SEATS[id].taken){ui.select(id);enterSeat(id)}});
 canvas.addEventListener("wheel",ev=>{if(view!=="AIR")return;ev.preventDefault();airGoal.zoom=Math.max(0.3,Math.min(1.35,airGoal.zoom*Math.exp(ev.deltaY*0.001)));dirty=true},{passive:false});
 window.addEventListener("resize",()=>{dirty=true});
-window.addEventListener("keydown",ev=>{if(ev.target.closest("input,textarea"))return;if(ev.key==="Escape"){if(document.querySelector("dialog[open]"))return;if(trans)skipTransition();else if(view==="X"&&window.stopExitDemo)stopExitDemo();else if(view!=="AIR")backToAircraft()}});
+window.addEventListener("keydown",ev=>{if(ev.target.closest("input,textarea"))return;if(ev.key==="Escape"){if(document.querySelector("dialog[open]"))return;if(trans)skipTransition();else if(view!=="AIR")backToAircraft()}});
 
 /* ---------- labels projected from 3D ---------- */
 const pool=new Map();let poolUsed=new Set();
@@ -600,7 +582,7 @@ function overlays(rects){poolUsed=new Set();
     if(view==="AIR"){recs.forEach((r,i)=>{if(!r.includes(selected))label("r"+r[0],"optn",`Option ${i+1} · ${r.join("+")}`,sp(r[0]),camera,rects[0],()=>ui.select(r[0]))});
       if(hover&&hover!==selected&&!SEATS[hover].taken){const s=SEATS[hover];label("hover","hover",`${hover} · ${s.price?"£"+s.price:"Free"}`,sp(hover),camera,rects[0])}}
     if(selGlow>0.05){const s=SEATS[selected],gi=recs.findIndex(r=>r.includes(selected));label("sel","sel",`Selected ${selected} · ${s.price?"£"+s.price:"Free"}${gi>=0?` · option ${gi+1}`:""}`,sp(selected),camera,rects[0],()=>enterSeat(selected))}}
-  for(const [i,g] of guideGroups.entries()){const idx=view==="CMP"?(g.userData.seat===cmp.a?0:1):0,cam=view==="CMP"&&idx===1?camB:camera;for(const l of g.userData.labels)label(`g${i}${l.cls}`,"guide "+l.cls,l.t,l.p,cam,rects[idx])}
+  for(const [i,g] of guideGroups.entries())for(const l of g.userData.labels)label(`g${i}${l.cls}`,"guide "+l.cls,l.t,l.p,camera,rects[0]);
   for(const [k,el] of pool)if(!poolUsed.has(k)){el.remove();pool.delete(k)}
   declutter()}
 /* nearby seat tags (adjacent rows) would sit on top of each other: stack them upward instead */
@@ -626,22 +608,18 @@ function precompile(){const hidden=[];scene.traverse(o=>{if(!o.visible){hidden.p
 function loop(t){requestAnimationFrame(loop);if(document.hidden)return;const dt=lastT?Math.min(1000,t-lastT):16;lastT=t;const kk=1-Math.exp(-dt/120);
   const w=canvas.clientWidth,h=canvas.clientHeight,key=w+"x"+h;if(key!==lastSize){lastSize=key;renderer.setSize(w,h,false);dirty=true}
   if(anim){anim(t);dirty=true}
-  leanGoal=["F","W","A","L"].includes(view)?leanFor(selected,view):0;if(Math.abs(lean-leanGoal)>0.002){lean+=(leanGoal-lean)*(reduce?1:kk*0.8);dirty=true}else lean=leanGoal;
+  leanGoal=["F","W","L"].includes(view)?leanFor(selected,view):0;if(Math.abs(lean-leanGoal)>0.002){lean+=(leanGoal-lean)*(reduce?1:kk*0.8);dirty=true}else lean=leanGoal;
   if(view==="AIR"){const k=kk;if(air.target.distanceTo(airGoal.target)>0.002||Math.abs(air.zoom-airGoal.zoom)>0.0005){air.target.lerp(airGoal.target,k);air.zoom+=(airGoal.zoom-air.zoom)*k;dirty=true}}
   const want=view==="AIR"?1:(view==="T"?selGlow:0);if(Math.abs(selLight.intensity-want*9)>0.02){selLight.intensity+=(want*9-selLight.intensity)*kk;dirty=true}
   if(trans){if(!trans.step(t))trans=null;dirty=true}
   for(const h of FRAME_HOOKS)if(h(t,dt))dirty=true;
   if(!dirty)return;dirty=false;if(first)precompile();const fs0=performance.now();
-  const split=view==="CMP",port=w<h;let rects=[{x:0,y:0,w,h}];
-  if(split){rects=port?[{x:0,y:0,w,h:h/2},{x:0,y:h/2,w,h:h/2}]:[{x:0,y:0,w:w/2,h},{x:w/2,y:0,w:w/2,h}]}
+  const rects=[{x:0,y:0,w,h}];
   if(view==="AIR"){sizeCam(camera,w,h,false);const L_=airLayout(w,h);setOffsetXY(camera,w,h,L_.dx,L_.dy);camera.updateProjectionMatrix();const p=airPose();camera.position.copy(p.pos);camera.quaternion.copy(p.quat)}
   else if(view==="T"){sizeCam(camera,w,h,true);const fs=camera.fov,fa=w/h<1?44:28;camera.fov=fa+(fs-fa)*sstep(0,0.75,transW);camera.updateProjectionMatrix();const so=seatOffset(),k=sstep(0,1,transW);setOffsetXY(camera,w,h,airLay.dx+(so.dx-airLay.dx)*k,airLay.dy+(so.dy-airLay.dy)*k)}
-  else if(split){camera.clearViewOffset();for(const [c,id,r] of[[camera,cmp.a,rects[0]],[camB,cmp.b,rects[1]]]){sizeCam(c,r.w,r.h,true);c.position.copy(eyeFor(id));const dy=yaw-viewAngles(cmp.a,seatView).y;const a=viewAngles(id,seatView);c.lookAt(c.position.clone().add(dirFrom(a.y+dy,pitch)))}}
-  else if(view==="R"||view==="X"){sizeCam(camera,w,h,true);applyOffset(camera,w,h);camera.position.copy(FREECAM.pos);camera.quaternion.copy(FREECAM.quat)}
   else{sizeCam(camera,w,h,true);applyOffset(camera,w,h);camera.position.copy(eye).add(leanVec(selected));camera.lookAt(camera.position.clone().add(dirFrom(yaw,pitch)))}
   camera.updateMatrixWorld();
-  if(split){renderer.setScissorTest(true);const H=h;for(const [c,r] of[[camera,rects[0]],[camB,rects[1]]]){renderer.setViewport(r.x,H-r.y-r.h,r.w,r.h);renderer.setScissor(r.x,H-r.y-r.h,r.w,r.h);renderer.clear();renderView(c);renderer.shadowMap.needsUpdate=false}renderer.setScissorTest(false);renderer.setViewport(0,0,w,h)}
-  else{renderer.clear();renderView(camera)}
+  renderer.clear();renderView(camera);
   PERF.sample(performance.now()-fs0,t);
-  overlays(rects);ui.frame(rects);
+  overlays(rects);
   if(first){first=false;document.getElementById("loading").classList.add("done")}}
