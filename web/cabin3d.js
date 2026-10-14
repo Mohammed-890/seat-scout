@@ -345,7 +345,7 @@ function buildWing(side){const g=new THREE.Group();const st=wingStations(),tip=s
   for(const [f,a,b] of[[0.13,0,7],[0.72,1,7],[0.6,1,4]]){const sub=st.slice(a,b);if(sub.length>1)g.add(mesh(surfLine(sub,f,0.006,0.012),M.panelLine,false,false))}
   // flap-track fairings (canoes) under the trailing edge
   for(const x of[4.4,8.2,11.3]){const S=st.find((q,i)=>st[i+1]&&st[i+1].o[0]>=x)||st[1];const k=(x-S.o[0]);const le=WING.le0+(x-WING.xr)*WING.sweep,yy=WING.yr+(x-WING.xr)*WING.dih;
-    const cg=new THREE.SphereGeometry(1,28,14);cg.scale(0.13,0.2,1.35);const cm=mesh(cg,M.wingLower,true,true);cm.position.set(x,yy-0.2,le+S.c*0.92+0.4);g.add(cm)}
+    const cg=new THREE.SphereGeometry(1,28,14);cg.scale(0.11,0.15,1.25);const cm=mesh(cg,M.wingLower,true,true);cm.position.set(x,yy-0.12,le+S.c*0.85+0.35);g.add(cm)}
   // engine: lathe-profiled nacelle, dark intake, fan with spinner, core cowl, exhaust plug, pylon
   const ex=5.6,ey=-1.62,ez=WING.le0+(ex-WING.xr)*WING.sweep-2.25,E=new THREE.Group();E.position.set(ex,ey,ez);g.add(E);
   const lathe=(pts,mat,seg=72)=>{const ge=new THREE.LatheGeometry(pts.map(([r,a])=>new THREE.Vector2(r,a)),seg);ge.rotateX(Math.PI/2);const m=mesh(ge,mat,true,true);E.add(m);return m};
@@ -487,13 +487,13 @@ function airLayout(w,h){const ob=fitObstacles();const key=[w,h,camera.fov,air.az
     let lo=6,hi=300;if(!fits(hi))continue;for(let i=0;i<22;i++){const m=(lo+hi)/2;if(fits(m))hi=m;else lo=m}if(!best||hi<best.d)best={dx,dy,d:hi}}
   airLay=Object.assign({key},best||{dx:0,dy:0,d:90});return airLay}
 function fitDist(){return airLay.d}
-const VIEWS={F:{y:0,p:-0.1},W:{y:1.62,p:-0.3},A:{y:-1.25,p:-0.12},L:{y:0,p:-0.86}};
+const VIEWS={F:{y:0,p:-0.1},W:{y:1.5,p:-0.2},A:{y:-1.25,p:-0.12},L:{y:0,p:-0.86}};
 const outSide=id=>SEATS[id].letter<="C"?-1:1;
 function viewAngles(id,m){const v=VIEWS[m],o=outSide(id);return {y:(m==="W"||m==="A")?v.y*o:v.y,p:v.p}}
 function eyeFor(id){const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),EYE_Y,backZ[s.row]-0.01)}
 /* in the window view a window-seat passenger leans toward the glass; others stay upright */
 let lean=0,leanGoal=0;function leanFor(id,m){return m==="W"&&SEATS[id].position==="window"?1:0}
-function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*0.17*lean,-0.03*lean,0.06*lean)}
+function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*0.09*lean,-0.02*lean,-0.07*lean)}
 const _m=new THREE.Matrix4(),_up=new THREE.Vector3(0,1,0);
 function quatLook(pos,tgt){_m.lookAt(pos,tgt,_up);return new THREE.Quaternion().setFromRotationMatrix(_m)}
 function dirFrom(y,p){return new THREE.Vector3(Math.sin(y)*Math.cos(p),Math.sin(p),-Math.cos(y)*Math.cos(p))}
@@ -596,11 +596,19 @@ function label(key,cls,text,v,cam,rect,onclick){let el=pool.get(key);if(!el){el=
   el.style.transform=`translate(${rect.x+(p.x+1)/2*rect.w}px,${rect.y+(1-p.y)/2*rect.h}px) translate(-50%,-100%)`}
 function overlays(rects){poolUsed=new Set();
   if(view==="AIR"||view==="T"){const sp=id=>{const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),1.25,backZ[s.row]-0.2)};
-    if(view==="AIR"){recs.forEach((r,i)=>{if(!r.includes(selected))label("r"+r[0],"rec",`Option ${i+1} · ${r.join("+")}`,sp(r[0]),camera,rects[0],()=>ui.select(r[0]))});
+    if(view==="AIR"){recs.forEach((r,i)=>{if(!r.includes(selected))label("r"+r[0],"optn",`Option ${i+1} · ${r.join("+")}`,sp(r[0]),camera,rects[0],()=>ui.select(r[0]))});
       if(hover&&hover!==selected&&!SEATS[hover].taken){const s=SEATS[hover];label("hover","hover",`${hover} · ${s.price?"£"+s.price:"Free"}`,sp(hover),camera,rects[0])}}
     if(selGlow>0.05){const s=SEATS[selected],gi=recs.findIndex(r=>r.includes(selected));label("sel","sel",`Selected ${selected} · ${s.price?"£"+s.price:"Free"}${gi>=0?` · option ${gi+1}`:""}`,sp(selected),camera,rects[0],()=>enterSeat(selected))}}
   for(const [i,g] of guideGroups.entries()){const idx=view==="CMP"?(g.userData.seat===cmp.a?0:1):0,cam=view==="CMP"&&idx===1?camB:camera;for(const l of g.userData.labels)label(`g${i}${l.cls}`,"guide "+l.cls,l.t,l.p,cam,rects[idx])}
-  for(const [k,el] of pool)if(!poolUsed.has(k)){el.remove();pool.delete(k)}}
+  for(const [k,el] of pool)if(!poolUsed.has(k)){el.remove();pool.delete(k)}
+  declutter()}
+/* nearby seat tags (adjacent rows) would sit on top of each other: stack them upward instead */
+function declutter(){const els=[...pool.values()].filter(e=>e.style.display!=="none"&&!e.classList.contains("guide"));const placed=[];
+  els.sort((a,b)=>(a.classList.contains("sel")?-1:0)-(b.classList.contains("sel")?-1:0));
+  for(const el of els){const m=/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(el.style.transform);if(!m)continue;let x=+m[1],y=+m[2];const w=el.offsetWidth,h=el.offsetHeight;
+    // labels are bottom-anchored: a label occupies [y-h, y] vertically and [x-w/2, x+w/2] horizontally
+    for(let n=0;n<10;n++){const hit=placed.find(r=>Math.abs(r.x-x)<(r.w+w)/2+4&&y-h<r.y+3&&r.y-r.h<y+3);if(!hit)break;y=hit.y-hit.h-5}
+    placed.push({x,y,w,h});el.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`}}
 
 /* ---------- render loop (on demand) ---------- */
 function renderView(c){if(typeof renderSky==="function"&&fades.studio<0.999)renderSky(c);else scene.background=null;renderer.render(scene,c)}

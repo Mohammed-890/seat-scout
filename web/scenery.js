@@ -63,7 +63,7 @@ function layer(o) {
   m.rotation.x = -Math.PI / 2; m.position.y = o.alt; m.renderOrder = o.order; m.userData.o = o; SKY.scene.add(m); SKY.layers.push(m); return m;
 }
 const L_GROUND = layer({ alt: -10500, scale: 9000, cov: 0, sharp: 1, fogDist: 26000, order: 1, ground: true, oct: 5 });
-const L_DECK = layer({ alt: -1900, scale: 2600, cov: 0.5, sharp: 0.2, fogDist: 34000, order: 2, oct: 5 });
+const L_DECK = layer({ alt: -1900, scale: 2600, cov: 0.5, sharp: 0.13, fogDist: 34000, order: 2, oct: 5 });
 const L_CUMULUS = layer({ alt: -650, scale: 1100, cov: 0.6, sharp: 0.13, fogDist: 26000, order: 3, oct: 5 });
 const L_CIRRUS = layer({ alt: 5200, scale: 9000, stretch: [0.35, 2.6], cov: 0.56, sharp: 0.3, fogDist: 60000, order: 4, opacity: 0.35, oct: 5 });
 
@@ -71,10 +71,10 @@ const L_CIRRUS = layer({ alt: 5200, scale: 9000, stretch: [0.35, 2.6], cov: 0.56
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const PRESETS = {
   day: { label: "Day above the clouds", sun: [-0.68, 0.52, 0.52], zenith: C(0.1, 0.25, 0.6), horizon: C(0.6, 0.72, 0.87), below: C(0.56, 0.63, 0.72), sunCol: C(1, 0.95, 0.86), sunAmt: 1, glow: 0.6, stars: 0, moon: 0,
-    deck: { cov: 0.47, lit: C(1.22, 1.22, 1.24), shade: C(0.6, 0.66, 0.77) }, cum: { cov: 0.6, lit: C(1.3, 1.3, 1.32), shade: C(0.64, 0.7, 0.8) }, cirrus: 0.35, ground: C(0.33, 0.38, 0.34), city: 0,
+    deck: { cov: 0.46, lit: C(1.35, 1.35, 1.37), shade: C(0.5, 0.57, 0.7) }, cum: { cov: 0.6, lit: C(1.3, 1.3, 1.32), shade: C(0.64, 0.7, 0.8) }, cirrus: 0.35, ground: C(0.33, 0.38, 0.34), city: 0,
     cabin: { sun: 3.6, sunCol: 0xfff0dc, hemi: 0.3, hemiSky: 0xf4f1ea, hemiGround: 0x3a3732, strip: 1.6, stripCol: 0xfff1e0, ceil: 0.55, exposure: 0.92, env: 1, win: 2.2 } },
   sunset: { label: "Warm sunset", sun: [-0.86, 0.075, -0.5], zenith: C(0.13, 0.17, 0.38), horizon: C(1.0, 0.52, 0.3), below: C(0.36, 0.26, 0.3), sunCol: C(1, 0.55, 0.26), sunAmt: 1.2, glow: 1.5, stars: 0, moon: 0,
-    deck: { cov: 0.5, lit: C(1.3, 0.72, 0.5), shade: C(0.3, 0.25, 0.36) }, cum: { cov: 0.63, lit: C(1.45, 0.78, 0.52), shade: C(0.34, 0.27, 0.38) }, cirrus: 0.55, ground: C(0.2, 0.17, 0.18), city: 0.15,
+    deck: { cov: 0.48, lit: C(1.45, 0.78, 0.52), shade: C(0.26, 0.21, 0.32) }, cum: { cov: 0.63, lit: C(1.45, 0.78, 0.52), shade: C(0.34, 0.27, 0.38) }, cirrus: 0.55, ground: C(0.2, 0.17, 0.18), city: 0.15,
     cabin: { sun: 2.4, sunCol: 0xffa15c, hemi: 0.2, hemiSky: 0xf2d8c4, hemiGround: 0x2e2626, strip: 1.25, stripCol: 0xffd9b0, ceil: 0.38, exposure: 0.98, env: 0.75, win: 1.5 } },
   night: { label: "Clear night", sun: [-0.5, -0.4, 0.4], zenith: C(0.004, 0.009, 0.028), horizon: C(0.025, 0.04, 0.085), below: C(0.008, 0.01, 0.018), sunCol: C(0, 0, 0), sunAmt: 0, glow: 0, stars: 0.75, moon: 1,
     deck: { cov: 0.66, lit: C(0.1, 0.12, 0.18), shade: C(0.03, 0.04, 0.07) }, cum: { cov: 0.74, lit: C(0.12, 0.14, 0.2), shade: C(0.03, 0.04, 0.07) }, cirrus: 0, ground: C(0.012, 0.014, 0.02), city: 1,

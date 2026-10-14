@@ -29,7 +29,7 @@ const G = {
   chest: torsoGeo([[0.001, -0.04], [0.15, -0.03], [0.168, 0.06], [0.172, 0.14], [0.16, 0.2], [0.11, 0.235], [0.055, 0.25], [0.001, 0.25]], 0.66),
   hips: (() => { const g = new THREE.SphereGeometry(1, 28, 16); g.scale(0.165, 0.11, 0.12); return g; })(),
   thigh: limbGeo(0.074, 0.056, 0.4), shin: limbGeo(0.053, 0.04, 0.4), upper: limbGeo(0.047, 0.04, 0.27), fore: limbGeo(0.04, 0.031, 0.24),
-  neck: limbGeo(0.046, 0.046, 0.07),
+  neck: limbGeo(0.046, 0.046, 0.07), deltoid: new THREE.SphereGeometry(0.062, 24, 16),
   head: (() => { const g = new THREE.SphereGeometry(0.104, 40, 28); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
       const jaw = y < 0 ? 1 - Math.min(0.2, -y * 1.6) : 1; x *= 0.9 * jaw; z *= y < 0 ? 0.98 : 1; y *= 1.12; p.setXYZ(i, x, y, z); } g.computeVertexNormals(); return g; })(),
   hand: (() => { const g = new THREE.SphereGeometry(1, 20, 12); g.scale(0.036, 0.05, 0.02); g.translate(0, -0.045, 0); return g; })(),
@@ -59,6 +59,7 @@ function makePerson(o) {
   m(G.hips, bottom, "pelvis"); m(G.abdomen, top, "spine", 0, -0.04, 0); m(G.chest, top, "chest", 0, -0.02, 0); m(G.neck, skin, "neck", 0, 0.06, 0);
   const head = m(G.head, skin, "head", 0, 0.1, 0);
   for (const s of ["L", "R"]) { const x = s === "L" ? -1 : 1;
+    const dl = m(G.deltoid, top, "sh" + s, -x * 0.012, 0.005, 0); dl.scale.set(1, 0.95, 0.9);
     m(G.upper, top, "sh" + s); m(G.fore, o.sleeves === "short" ? skin : top, "el" + s); m(G.hand, skin, "ha" + s); m(G.thumb, skin, "ha" + s, -x * 0.03, -0.02, -0.012, 0.3, 0, x * 0.6);
     m(G.thigh, bottom, "hip" + s); m(G.shin, bottom, "kn" + s); const sh = m(G.shoe, o.shoes === "light" ? PM.shoeW : PM.shoeD, "an" + s); sh.position.y = -0.03; }
   // face
@@ -100,7 +101,7 @@ function poseFor(kind, side) { // side: +1 if the aisle is at +x from this passe
     case "swivel": return pose({ _yaw: Math.PI / 2 * s, _root: [0.18 * s, -0.43, -0.12], hipL: [1.45, 0, 0], hipR: [1.45, 0, 0], neck: [-0.1, 0, 0], face: "smile" });
     case "rising": return pose({ _yaw: Math.PI / 2 * s, _root: [0.45 * s, -0.2, -0.16], spine: [-0.45, 0, 0], hipL: [1.0, 0, 0], hipR: [1.0, 0, 0], knL: [-1.2, 0, 0], knR: [-1.2, 0, 0], shL: [0.4, 0, 0], shR: [0.4, 0, 0], elL: [0.3, 0, 0], elR: [0.3, 0, 0], face: "smile" });
     case "standingAisle": return pose({ _yaw: Math.PI / 2 * s, _root: [0.62 * s, -0.02, -0.15], spine: [0, 0, 0], neck: [0, 0, 0], hipL: [0.05, 0, 0], hipR: [-0.05, 0, 0], knL: [-0.08, 0, 0], knR: [-0.05, 0, 0], anL: [0, 0, 0], anR: [0, 0, 0], shL: [0.05, 0, -0.08], shR: [0.05, 0, 0.08], elL: [0.25, 0, 0], elR: [0.25, 0, 0], face: "smile" });
-    case "steppedBack": return pose({ _yaw: Math.PI, _root: [0.62 * s, -0.02, 0.62], spine: [0, 0, 0], neck: [0, 0, 0], hipL: [0.05, 0, 0], hipR: [-0.05, 0, 0], knL: [-0.08, 0, 0], knR: [-0.05, 0, 0], anL: [0, 0, 0], anR: [0, 0, 0], shL: [0.05, 0, -0.08], shR: [0.05, 0, 0.08], elL: [0.3, 0, 0], elR: [0.3, 0, 0], face: "smile" });
+    case "steppedBack": return pose({ _yaw: Math.PI / 2 * s, _root: [0.62 * s, -0.02, 0.62], spine: [0, 0, 0], neck: [0, 0, 0], hipL: [0.05, 0, 0], hipR: [-0.05, 0, 0], knL: [-0.08, 0, 0], knR: [-0.05, 0, 0], anL: [0, 0, 0], anR: [0, 0, 0], shL: [0.05, 0, -0.08], shR: [0.05, 0, 0.08], elL: [0.3, 0, 0], elR: [0.3, 0, 0], face: "smile" });
     case "slide": return pose({ _root: [0.48 * s, -0.43, -0.15], spine: [0.1, 0, 0], neck: [-0.1, 0, 0], face: "smile" });
     default: return pose({});
   }
@@ -244,7 +245,10 @@ function renderPlayPanel() { const el = document.getElementById("playPanel"); if
   el.querySelector("#ppWho").onchange = (e) => { targetP = PEOPLE.list[Number(e.target.value)]; };
   el.querySelectorAll("[data-p]").forEach((b) => { b.disabled = false; b.onclick = () => { const k = b.dataset.p; if (k === "reset") resetAll(); else { if (busyP) return; playAction(k); } }; }); }
 /* turn toward your neighbours so they are in view (they sit beside you, outside the forward view) */
-function faceNeighbours() { if (["F", "W", "L"].includes(view) && between(selected).length) rotateTo("A"); }
+/* look toward the neighbours at a comfortable angle (the plain aisle view puts the nearest head too close) */
+function faceNeighbours() { if (!["F", "W", "A", "L"].includes(view) || !between(selected).length) return; const o = SEATS[selected].letter <= "C" ? 1 : -1;
+  const y1 = 0.78 * o, p1 = -0.16; if (reduce) { yaw = y1; pitch = p1; view = "A"; seatView = "A"; ui.sync(); dirty = true; return; }
+  const y0 = yaw, p0 = pitch, t0 = performance.now(); view = "A"; seatView = "A"; anim = (t) => { const k = Math.min(1, (t - t0) / 700), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; yaw = y0 + (y1 - y0) * e; pitch = p0 + (p1 - p0) * e; if (k >= 1) anim = null; }; ui.sync(); }
 function setPlayground(on) { PEOPLE.on = on; if (on) { if (["F", "W", "A", "L"].includes(view)) { populate("playground"); faceNeighbours(); } } else { clearPeople(); PEOPLE.mode = null; } renderPlayPanel(); dirty = true; }
 
 /* ---------- "Try getting out" ---------- */
