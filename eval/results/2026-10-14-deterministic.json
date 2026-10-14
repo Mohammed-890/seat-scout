@@ -1,6 +1,6 @@
 {
  "suiteVersion": "1+requires",
- "startedAt": "2026-10-14T06:12:49.478Z",
+ "startedAt": "2026-10-14T08:36:54.450Z",
  "node": "v22.22.0",
  "dataConfig": "seat-scout-demo-a320neo-v1",
  "policy": "demo-policy-v1",
@@ -23,7 +23,7 @@
     "preferenceHitPct": 100,
     "unsupportedNumericClaims": 0,
     "latencyMsP50": 2,
-    "latencyMsP95": 16,
+    "latencyMsP95": 11,
     "inputTokens": 0,
     "outputTokens": 0
    },
@@ -154,7 +154,7 @@
     "preferenceHitPct": 66.7,
     "unsupportedNumericClaims": 0,
     "latencyMsP50": 0,
-    "latencyMsP95": 2,
+    "latencyMsP95": 1,
     "inputTokens": 0,
     "outputTokens": 0
    },
@@ -916,5 +916,5 @@
    "problems": []
   }
  ],
- "finishedAt": "2026-10-14T06:12:49.714Z"
+ "finishedAt": "2026-10-14T08:36:54.621Z"
 }

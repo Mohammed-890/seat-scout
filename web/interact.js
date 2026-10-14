@@ -8,8 +8,11 @@ const byId = (i) => document.getElementById(i), escH = (t) => String(t).replace(
 
 /* ---------- tiny tween system (frame-rate independent; instant with reduced motion) ---------- */
 const TW = { list: [], add(dur, fn, done) { if (reduce || dur <= 0) { fn(1); done && done(); return; } this.list.push({ t0: performance.now(), dur, fn, done }); dirty = true; },
-  step(t) { if (!this.list.length) return false; this.list = this.list.filter((a) => { const k = Math.min(1, (t - a.t0) / a.dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; a.fn(e); if (k >= 1) { a.done && a.done(); return false; } return true; }); return true; },
-  clear() { for (const a of this.list) { a.fn(1); a.done && a.done(); } this.list = []; } };
+  // tweens finished this frame are removed first, then their callbacks run, so a callback can start the next tween
+  step(t) { if (!this.list.length) return false; const done = [];
+    for (const a of [...this.list]) { const k = Math.max(0, Math.min(1, (t - a.t0) / a.dur)), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; a.fn(e); if (k >= 1) done.push(a); }
+    this.list = this.list.filter((a) => !done.includes(a)); for (const a of done) a.done && a.done(); return true; },
+  clear() { for (let n = 0; n < 8 && this.list.length; n++) { const l = this.list; this.list = []; for (const a of l) { a.fn(1); a.done && a.done(); } } this.list = []; } };
 FRAME_HOOKS.push((t) => TW.step(t));
 
 /* free camera used by the recline preview and the aisle-access demo */
@@ -20,6 +23,8 @@ function camTo(pos, look, dur, done) {
 }
 
 /* ---------- seat rig ---------- */
+/* one permanent reading-light spot: adding/removing lights would force every material to recompile */
+const READ_SPOT = new THREE.SpotLight(0xffe2b8, 0, 2.4, 0.32, 0.55, 1.6); scene.add(READ_SPOT, READ_SPOT.target);
 const RIG = { id: null, group: new THREE.Group(), det: [], meshes: {}, st: {}, sup: {}, pivots: {}, light: null, beltMesh: null, tried: new Set() };
 scene.add(RIG.group);
 const seatOf = (row, letter) => SEATS[row + letter];
@@ -70,7 +75,7 @@ function rigDetach() {
   TW.clear();
   for (const d of RIG.det) d.restore(); RIG.det = [];
   while (RIG.group.children.length) RIG.group.remove(RIG.group.children[0]);
-  if (RIG.light) { scene.remove(RIG.light, RIG.light.target); RIG.light = null; }
+  READ_SPOT.intensity = 0; RIG.light = null;
   hiMat.clear(); RIG.id = null; RIG.meshes = {}; RIG.pivots = {}; hideHotspots(); renderControls();
 }
 function rigAttach(id) {
@@ -102,7 +107,7 @@ function rigAttach(id) {
   { const piv = new THREE.Vector3(seatX(s.letter), PIVOT_Y, backZ[s.row] + PIVOT_Z); RIG.pivots.recline = { rot: pivotRot(back, piv, new THREE.Vector3(1, 0, 0)), max: s.recline === "limited" ? 0.07 : 0.2 }; }
   // reading light: a lamp overlay plus a narrow spot onto the seat
   { const lp = lampPos(s), lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.0175, 0.0175, 0.004, 24), M.ledOff.clone()); lamp.position.copy(lp).add(new THREE.Vector3(0, -0.003, 0)); lamp.userData.ctl = "light"; RIG.group.add(lamp); RIG.meshes.lamp = lamp; glowable(lamp);
-    const sp = new THREE.SpotLight(0xffe2b8, 0, 2.4, 0.32, 0.55, 1.6); sp.position.copy(lp).add(new THREE.Vector3(0, -0.02, 0)); sp.target.position.set(seatX(s.letter), 0.55, backZ[s.row] - 0.32); scene.add(sp, sp.target); RIG.light = sp; RIG.pivots.light = { anchor: lp.clone() }; }
+    const sp = READ_SPOT; sp.intensity = 0; sp.position.copy(lp).add(new THREE.Vector3(0, -0.02, 0)); sp.target.position.set(seatX(s.letter), 0.55, backZ[s.row] - 0.32); sp.target.updateMatrixWorld(); RIG.light = sp; RIG.pivots.light = { anchor: lp.clone() }; }
   // shade: the existing per-window shade
   if (RIG.sup.shade) { const sh = nearestShade(s); RIG.shade = sh; sh.sm.userData.ctl = "shade"; sh.lip.userData.ctl = "shade"; RIG.pivots.shade = { get anchor() { return new THREE.Vector3().setFromMatrixPosition(sh.lip.matrixWorld); } }; }
   // belt
