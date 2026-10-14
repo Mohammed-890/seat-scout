@@ -16,14 +16,30 @@ export interface SeatApi {
   init(): Promise<{ config: any; policy: any; takenSeats: string[]; mode: string; modeLabel: string; model: string | null }>;
   /** Resolves with the final mode label once live-model availability is known (preview only). */
   ready?: Promise<{ mode: string; modeLabel: string }>;
-  chat(text: string): Promise<TurnResult>;
+  chat(text: string, o?: CallOpts): Promise<TurnResult>;
   seatTaken(seat?: string): Promise<TurnResult>;
-  impossible(): Promise<TurnResult>;
-  toolTimeout(): Promise<TurnResult>;
+  impossible(o?: CallOpts): Promise<TurnResult>;
+  toolTimeout(o?: CallOpts): Promise<TurnResult>;
   select(seats: string[]): Promise<TurnResult>;
   evalLatest(): Promise<any>;
 }
 
+/** onEvent receives real trace events while the turn runs; clientId makes a retry idempotent. */
+export interface CallOpts { onEvent?: (e: any) => void; clientId?: string }
+async function postStream(path: string, body: Record<string, unknown>, o: CallOpts = {}): Promise<TurnResult> {
+  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", accept: "application/x-ndjson" }, credentials: "same-origin", body: JSON.stringify({ ...body, ...(o.clientId ? { clientId: o.clientId } : {}) }) });
+  if (!r.ok || !(r.headers.get("content-type") ?? "").includes("ndjson") || !r.body) {
+    const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+    if (!r.ok) throw Object.assign(new Error(j.error ?? `HTTP ${r.status}`), { status: r.status, issues: j.issues });
+    return j; // replayed result for a duplicate clientId
+  }
+  const reader = r.body.getReader(), dec = new TextDecoder(); let buf = "", result: TurnResult | null = null;
+  for (;;) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true });
+    let i; while ((i = buf.indexOf("\n")) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue; const m = JSON.parse(line);
+      if (m.type === "event") o.onEvent?.(m.event); else if (m.type === "result") result = m.result; else if (m.type === "error") throw new Error(m.error); } }
+  if (!result) throw new Error("connection closed before the answer arrived");
+  return result;
+}
 async function postJSON(path: string, body: unknown = {}) {
   const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, credentials: "same-origin", body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
@@ -40,10 +56,10 @@ export function httpApi(): SeatApi {
       const c = await r.json();
       return { ...c, modeLabel: c.mode === "live" ? `Live · ${c.model} · server-side tool use` : "Deterministic · rule-based parser · no model" };
     },
-    chat: (text) => postJSON("/api/chat", { text }),
+    chat: (text, o) => postStream("/api/chat", { text }, o),
     seatTaken: (seat) => postJSON("/api/demo/seat-taken", seat ? { seat } : {}),
-    impossible: () => postJSON("/api/demo/impossible"),
-    toolTimeout: () => postJSON("/api/demo/tool-timeout"),
+    impossible: (o) => postStream("/api/demo/impossible", {}, o),
+    toolTimeout: (o) => postStream("/api/demo/tool-timeout", {}, o),
     select: (seats) => postJSON("/api/select", { seats }),
     async evalLatest() { const r = await fetch("/api/eval/latest", { credentials: "same-origin" }); return r.json(); },
   };
@@ -63,9 +79,13 @@ export function localApi(embedded: { config: any; policy: any; snapshot: any; ev
     } catch { /* stay deterministic */ }
     return { mode: runner ? "live" : "deterministic", modeLabel };
   })();
-  const turn = async (text: string) => {
+  let busy = false;
+  const turn = async (text: string, o: CallOpts = {}) => {
     await ready;
-    const r = await handleTurn(session, text, runner);
+    if (busy) throw Object.assign(new Error("a request is still running"), { status: 409 });
+    busy = true;
+    let r: TurnResult;
+    try { r = await handleTurn(session, text, runner, undefined, { onEvent: o.onEvent }); } finally { busy = false; }
     if (r.mode === "deterministic-fallback" && r.trace.some((e) => /not_granted|tools_unavailable/.test(e.title))) { runner = null; modeLabel = "Preview · deterministic (Claude not allowed in this view)"; }
     return r;
   };
@@ -75,8 +95,8 @@ export function localApi(embedded: { config: any; policy: any; snapshot: any; ev
     async init() { return { config: embedded.config, policy: embedded.policy, takenSeats: session.availability.latest.takenSeats, mode: runner ? "live" : "deterministic", modeLabel, model: null }; },
     chat: turn,
     seatTaken: async (seat) => simulateSeatTaken(session, seat),
-    impossible: () => turn("Make the total budget £1."),
-    toolTimeout: async () => { session.faults.toolTimeoutOnce = true; return turn(session.lastUserText || "Show me the best options again."); },
+    impossible: (o) => turn("Make the total budget £1.", o),
+    toolTimeout: async (o) => { session.faults.toolTimeoutOnce = true; return turn(session.lastUserText || "Show me the best options again.", o); },
     select: async (seats) => selectSeats(session, seats),
     evalLatest: async () => embedded.evalLatest,
   };

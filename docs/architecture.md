@@ -16,7 +16,7 @@ flowchart LR
   UI -- "text, demo controls" --> API --> AG
   AG <-- "messages + tool schemas" --> LLM
   AG --> TOOLS --> CORE --> DATA
-  API -- "message, validated cards, trace" --> UI
+  API -- "NDJSON: live trace events,<br/>then message, validated cards, trace" --> UI
 ```
 
 ## Request flow (one turn)
@@ -25,6 +25,21 @@ flowchart LR
 3. **Search**: `findAdjacentSeatGroups` enumerates every side-by-side group of the right size, applies hard constraints (availability, total or per-seat budget, demo eligibility policy, must-haves) with explicit exclusion reasons, and ranks the rest by named preference components. If nothing fits, it returns a relaxation analysis.
 4. **Validation**: the model validates its picks and then submits. The application **re-validates** everything against the latest snapshot, recomputes totals and builds the cards from the dataset. Invalid picks are dropped and the turn says so; after two rejected submissions it falls back to the deterministic planner.
 5. **Trace**: every step is recorded as an application event (the arguments, results, exclusions, scores, validation, model usage and latency), not hidden reasoning.
+6. **Progress**: when the client asks for `application/x-ndjson`, each trace event is streamed as it is recorded, then the final result. The progress list in the chat and in Engineering → Current execution is built only from these events.
+
+## Request handling guarantees
+- **One turn at a time per session.** A second turn that arrives while one is running gets `409` instead of interleaving state patches.
+- **Idempotent retries.** The client sends a random `clientId` per message and reuses it on Retry. If the first attempt actually finished (for example the connection dropped after the server answered), the stored result is returned with `replayed: true`, and the turn is not applied twice.
+- **No duplicate submissions in the UI.** The composer is locked while a request runs; a failed message stays in the conversation with a Retry button.
+
+## Evaluation metrics (and why there are four)
+`eval/checks.ts` reports, each with numerator and denominator:
+- **Request understanding**: requirements the passenger stated (`expect.requires` and the older per-field expectations) that are present in the final structured state.
+- **Parsed-constraint satisfaction**: shown seat groups that meet the constraints *the system recorded*. This is what a solver can guarantee, and it cannot catch a requirement the parser never recorded.
+- **Actual-requirement satisfaction**: shown seat groups that meet what the passenger *asked for*.
+- **Impossible-request recognition**: cases with no feasible answer that end with no seats and an explanation.
+
+Before the parser fix, parsed-constraint satisfaction was 101/101 while actual-requirement satisfaction was 95/101 and request understanding 20/27. A single "hard constraints 100%" figure had hidden that gap.
 
 ## Trust boundaries
 | Boundary | What is protected | How |
@@ -34,6 +49,21 @@ flowchart LR
 | Untrusted text ↔ instructions | Prompt injection via user or retrieved text | Passenger tips are returned as `{untrusted: true}` data; the system prompt says not to follow them; the user can't change the demo policy; evaluated in the `override_attempt` cases |
 | Input ↔ state | Malformed or hostile input | zod schemas on every tool input and request body (`strict`, bounded sizes); invalid input becomes a tool error, not a state change |
 | Snapshot ↔ selection | Stale recommendations | Versioned snapshots; selection and recovery always revalidate against the latest version |
+
+## Preview vs repository/backend
+| | claude.ai artifact preview | Repository (`npm start`) |
+|---|---|---|
+| Where the core runs | In the page | In the Node server |
+| Model access | The viewer's own claude.ai account via the `sample` capability, when allowed; otherwise deterministic | `ANTHROPIC_API_KEY` in the server environment; otherwise deterministic |
+| Session isolation | Page memory of one viewer | HttpOnly cookie sessions, rate limits, server-side state |
+| Deployment | Hosted artifact page | Not deployed by this project; runs locally |
+
+## Front end
+- `web/cabin3d.js`: aircraft and cabin (instanced seats, lofted airfoil wings and tail, lathe-turned engines, cutaway with frame stubs), camera path, framing that fits the aircraft into the free screen area, seat-part registry.
+- `web/interact.js`: the selected seat's movable parts (tray, armrests, belt, shade, reading light, recline preview), hotspots, toolbar and shortcuts, "Things to try".
+- `web/scenery.js` (loaded after the first frame): sky dome, procedural cloud layers and ground, day/sunset/night presets that also drive cabin lighting. Separate render pass with its own far plane.
+- `web/people.js` (loaded on first use): stylised procedural passengers, Cabin Playground, "Try getting out".
+- `web/flat.js`: fallback when WebGL is unavailable (2D map, concierge and engineering view still work).
 
 ## Preview deployment (claude.ai artifact)
 The single-file preview bundles the same core, tools and UI into the page. When the viewer allows it, Claude is reached through the artifact `sample` capability **on the viewer's own claude.ai account**: there is still no key in the page, and tools run in the page with the same validation. Token counts aren't exposed there, so the trace shows latency only. Otherwise the preview uses the deterministic planner and says so.

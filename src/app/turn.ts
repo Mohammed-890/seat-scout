@@ -16,8 +16,9 @@ import { score } from "../core/engine.js";
 
 export interface Pricing { inputPerMTokUSD: number | null; outputPerMTokUSD: number | null }
 
-export async function handleTurn(session: Session, text: string, agent: AgentRunner | null, pricing?: Pricing): Promise<TurnResult> {
-  const trace = new Trace();
+export interface TurnOptions { onEvent?: (e: import("./trace.js").TraceEvent) => void }
+export async function handleTurn(session: Session, text: string, agent: AgentRunner | null, pricing?: Pricing, opts: TurnOptions = {}): Promise<TurnResult> {
+  const trace = new Trace(opts.onEvent);
   const t0 = Date.now();
   session.turns++;
   trace.add("request", "Passenger message", { text, snapshotVersion: session.availability.version, stateRevision: session.state.revision });

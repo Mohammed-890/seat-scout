@@ -108,7 +108,7 @@ export function stateSummary(s: TripState): string[] {
   if (s.budget.totalGBP != null) p.push(`total ≤ £${s.budget.totalGBP}`);
   if (s.budget.perSeatGBP != null) p.push(`≤ £${s.budget.perSeatGBP} per seat`);
   if (seatsNeeded(s) > 1) p.push("seated together");
-  if (s.hard.position) p.push(`must include a ${s.hard.position} seat`);
+  if (s.hard.position) p.push(`must include ${s.hard.position === "aisle" ? "an" : "a"} ${s.hard.position} seat`);
   if (s.hard.clearViewRequired) p.push("window must not look onto the wing");
   if (s.hard.exitRowOnly) p.push("exit row only");
   if (s.hard.zone) p.push(`${s.hard.zone} cabin`);

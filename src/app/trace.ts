@@ -18,8 +18,12 @@ export interface TraceEvent {
 export class Trace {
   readonly events: TraceEvent[] = [];
   private t0 = Date.now();
+  /** Optional listener, used to stream real progress to the client while a turn runs. */
+  constructor(private onEvent?: (e: TraceEvent) => void) {}
   add(kind: TraceKind, title: string, data?: unknown, extra: Partial<TraceEvent> = {}): void {
-    this.events.push({ t: Date.now() - this.t0, kind, title, data: redact(data), ...extra });
+    const e: TraceEvent = { t: Date.now() - this.t0, kind, title, data: redact(data), ...extra };
+    this.events.push(e);
+    if (this.onEvent) { try { this.onEvent(e); } catch { /* a slow or closed client must not break the turn */ } }
   }
 }
 
