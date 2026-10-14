@@ -4,7 +4,7 @@
 
 > All data is synthetic: an illustrative A320neo-style cabin, sample prices and generated availability. Not affiliated with any airline; nothing is booked.
 
-![Aircraft cutaway with a recommended group lit up](docs/screenshots/aircraft-recommendation.png)
+![Aircraft cutaway with three recommended groups lit up](docs/screenshots/after-recommend.png)
 
 **Live preview:** [claude.ai artifact](https://claude.ai/artifact/FaweTYWuRkYkGMVkpSTvRa). This is the single-file preview build: the same core and tools in the browser, with Claude reached through the viewer's own claude.ai account when they allow it, or a labelled deterministic mode otherwise. I need to share it publicly before anyone else can open it. The full agent runs server-side from this repository (below).
 
@@ -25,12 +25,17 @@ I saw a demo of a cinema seat picker and wanted to try a harder, real-world vers
 | Before | After |
 |---|---|
 | ![Before: aircraft](docs/screenshots/before-aircraft.png) | ![After: aircraft](docs/screenshots/after-aircraft.png) |
-| ![Before: window](docs/screenshots/before-window.png) | ![After: window at sunset](docs/screenshots/after-window-sunset.png) |
+| ![Before: forward view](docs/screenshots/before-forward.png) | ![After: forward view](docs/screenshots/after-seat-forward.png) |
+| ![Before: window view](docs/screenshots/before-window.png) | ![After: window at night, 21A](docs/screenshots/after-window-night.png) |
 
 | | |
 |---|---|
-| ![Cabin objects](docs/screenshots/after-objects.png) | ![Try getting out](docs/screenshots/after-exit.png) |
-| ![Recommendation](docs/screenshots/after-recommend.png) | ![Night window](docs/screenshots/after-window-night.png) |
+| ![Sunset preset](docs/screenshots/after-window-sunset.png) | ![Cabin objects: tray down, reading light, armrest up, belt unfastened](docs/screenshots/after-objects.png) |
+| ![Recline preview](docs/screenshots/after-recline.png) | ![Try getting out](docs/screenshots/after-exit.png) |
+| ![Cabin Playground](docs/screenshots/after-playground.png) | ![Engineering: deterministic evaluation](docs/screenshots/after-engineering.png) |
+| ![Mobile seat view](docs/screenshots/after-mobile-seat.png) | ![Without WebGL: 2D map fallback](docs/screenshots/after-no-webgl.png) |
+
+Screenshots were rendered with software WebGL in a headless browser.
 
 ## How it works
 See [docs/architecture.md](docs/architecture.md) for the diagram and trust boundaries.
@@ -39,7 +44,8 @@ See [docs/architecture.md](docs/architecture.md) for the diagram and trust bound
 - **Deterministic core** (`src/core/`): group enumeration, hard constraints with explicit exclusion reasons, transparent scoring components, relaxation analysis when nothing fits, an independent validator, and grounded explanations.
 - **Agent** (`src/agent/`): one bounded tool-use loop (≤8 steps, model and tool timeouts) with eight zod-validated tools. The model interprets the request and explains the results; it never computes prices, eligibility or adjacency. Every submitted recommendation is re-validated, and cards are built from data, not model text. If the model fails, a rule-based planner (English + Arabic) answers through the same tools, and the answer is labelled as such.
 - **State** (`src/core/state.ts`): structured trip preferences persisted separately from the conversation; versioned availability snapshots per session.
-- **Server** (`src/server/`): Node HTTP with HttpOnly session cookies, per-session isolation and rate limits, body validation, and the API key kept server-side.
+- **Server** (`src/server/`): Node HTTP with HttpOnly session cookies, per-session isolation and rate limits, body validation, and the API key kept server-side. Turns stream their real trace events as NDJSON (the progress you see while waiting). One turn runs at a time per session (409 otherwise), and retries reuse a request id so a turn is never applied twice.
+- **Front end** (`web/`): `cabin3d.js` (aircraft, instanced cabin, camera), `interact.js` (cabin objects), `scenery.js` (sky and clouds, loaded after the first frame), `people.js` (passengers, loaded on first use), `flat.js` (fallback without WebGL), `ui.js` (interface). Shaders are precompiled while loading; animated parts refresh the static shadow map only when they stop.
 - **Engineering view**: the real execution trace (parsed request, constraints, tool calls with validated arguments, candidates, exclusions, scores, validation, model usage and latency), linked to seats in the 3D scene. It is an application log, not model reasoning.
 
 ### Key tradeoffs
@@ -72,6 +78,26 @@ See [docs/architecture.md](docs/architecture.md) for the diagram and trust bound
 
 **Tests.** `npm test`: 31 unit and integration tests, covering engine, parser, tools, the agent loop with a scripted test double, recovery, sessions, HTTP, streaming, one-turn-per-session and idempotent retries. `npm run test:e2e`: Playwright end-to-end tests of the passenger journey and the verification list (see *Verification* below).
 
+## Verification
+End-to-end tests (`tests/e2e/`, Playwright against the real server in deterministic mode, software WebGL) cover the brief's verification list:
+
+| Area | What is checked |
+|---|---|
+| Known failing eval cases | "1 adult, window, total £2" and the Arabic £3 window request end in an explained no-feasible answer with no seats |
+| Single passenger, family, multi-turn | Recommendations of the right size; "£25 maximum" changes only the budget; "Why not row 6?"; "I care more about getting out easily" raises aisle weight |
+| Impossible budgets, availability, tool timeout | Conflict explained; a taken seat moves availability to snapshot v2 and the top pick changes; a timed-out tool is retried and the trace shows it |
+| Arabic and numerals | Arabic-Indic digits and dual forms |
+| Compare and select | Per-seat prices vs group total; demo selection revalidates and the selected seats appear in the header |
+| Duplicate submissions and retry | One request at a time; a dropped request keeps its message and retries with the same request id |
+| Object interactions | Tray, shade, reading light, belt and armrest states via keyboard and toolbar; unsupported features disabled (wall/bulkhead armrests, no seat-back tray in row 1, shade only at the window) |
+| Recline preview | Shows the modelled effect on the seat behind and returns to the seat |
+| Characters | Nudge, shove, cheek tap and "Excuse me": every passenger stays within its seat or the aisle, wobble stays within its bound, and reset restores everyone |
+| Aisle access | 14A: two people stand at 29 in pitch; 17C (aisle): direct route; skip and reset |
+| Camera interruption | Going back mid-transition and skipping never leave controls disabled |
+| Reduced motion, fallback, mobile | Instant transitions and no scenery motion; `?no3d` shows the 2D map and the concierge works; no horizontal overflow at 390 px; the focused composer stays in the viewport |
+
+Results of the final run are listed in [docs/verification.md](docs/verification.md).
+
 ## Run it locally
 Requires Node 20+.
 ```bash
@@ -80,7 +106,8 @@ npm run dev                  # builds the web bundle and starts http://localhost
 ANTHROPIC_API_KEY=... npm start   # live agent, server-side (optional: SEAT_SCOUT_MODEL=claude-sonnet-5-5)
 npm test                     # unit + integration
 npm run eval                 # deterministic evaluation → eval/results/
-npx playwright install chromium && npm run test:e2e
+npx playwright install chromium && npm run test:e2e   # slow with software WebGL
+node scripts/shots.mjs shots          # screenshots of fixed app states (dev tool)
 npm run build:artifact       # single-file preview in artifact/
 ```
 Cost per turn is shown only if you fill in current prices in `config/pricing.json`. Nothing is hard-coded.

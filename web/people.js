@@ -238,7 +238,9 @@ FRAME_HOOKS.push((t, dt) => { if (!PEOPLE.list.length) return false; let active 
   placeBubbles(); const hasBubble = [...PEOPLE.bubbles.values()].some((e) => e.classList.contains("on")); return active || hasBubble || (PEOPLE.mode === "playground" && !reduce && !QUALITY.low); });
 
 /* ---------- Playground panel ---------- */
-function renderPlayPanel() { const el = document.getElementById("playPanel"); if (!el) return; const on = PEOPLE.mode === "playground" && ["F", "W", "A", "L"].includes(view); el.hidden = !on; if (!on) return;
+function renderPlayPanel() { const el = document.getElementById("playPanel"); if (!el) return; const on = PEOPLE.mode === "playground" && ["F", "W", "A", "L"].includes(view); el.hidden = !on;
+  const tg = document.getElementById("tryGuide"); if (tg && on) tg.hidden = true;
+  if (!on) return; el.classList.toggle("left", SEATS[selected].letter <= "C"); // keep the panel on the side away from your neighbours
   const T = target(); el.innerHTML = `<div class="pp-h"><b>Cabin Playground</b><span class="fine">Fictional, stylised passengers · availability unchanged</span></div>
    <label class="pp-t">Who: <select id="ppWho">${PEOPLE.list.map((P, i) => `<option value="${i}" ${P === T ? "selected" : ""}>${pEsc(P.o.name)} · ${pEsc(P.seat)}${P.o.kind === "sleeper" ? " (asleep)" : P.o.kind === "hog" ? " (armrest)" : P.o.kind === "phones" ? " (headphones)" : P.o.kind === "snack" ? " (snack)" : ""}</option>`).join("")}</select></label>
    <div class="pp-b"><button class="btn" data-p="excuse">“Excuse me”</button><button class="btn" data-p="nudge">Shoulder nudge</button><button class="btn" data-p="shove">Playful shove</button><button class="btn" data-p="tap">Cartoon cheek tap</button><button class="btn" data-p="reset">Reset</button></div>`;
@@ -247,7 +249,7 @@ function renderPlayPanel() { const el = document.getElementById("playPanel"); if
 /* turn toward your neighbours so they are in view (they sit beside you, outside the forward view) */
 /* look toward the neighbours at a comfortable angle (the plain aisle view puts the nearest head too close) */
 function faceNeighbours() { if (!["F", "W", "A", "L"].includes(view) || !between(selected).length) return; const o = SEATS[selected].letter <= "C" ? 1 : -1;
-  const y1 = 0.78 * o, p1 = -0.16; if (reduce) { yaw = y1; pitch = p1; view = "A"; seatView = "A"; ui.sync(); dirty = true; return; }
+  const y1 = 1.2 * o, p1 = -0.17; if (reduce) { yaw = y1; pitch = p1; view = "A"; seatView = "A"; ui.sync(); dirty = true; return; }
   const y0 = yaw, p0 = pitch, t0 = performance.now(); view = "A"; seatView = "A"; anim = (t) => { const k = Math.min(1, (t - t0) / 700), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; yaw = y0 + (y1 - y0) * e; pitch = p0 + (p1 - p0) * e; if (k >= 1) anim = null; }; ui.sync(); }
 function setPlayground(on) { PEOPLE.on = on; if (on) { if (["F", "W", "A", "L"].includes(view)) { populate("playground"); faceNeighbours(); } } else { clearPeople(); PEOPLE.mode = null; } renderPlayPanel(); dirty = true; }
 
