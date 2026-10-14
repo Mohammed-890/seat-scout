@@ -274,7 +274,7 @@ function stopExitDemo(reset = true) { EXIT.cancel = true; EXIT.running = false; 
   if (RIG.id) { if (!RIG.st.belt) act("belt"); } view = "F"; ui.sync(); dirty = true; const el = document.getElementById("exitPanel"); if (el) el.hidden = true; renderPlayPanel(); }
 function skipExitDemo() { if (!EXIT.running && view !== "X") return; EXIT.cancel = true; TW.clear();
   const S = EXIT.summary; const inner = between(S.me);
-  [...inner].reverse().map((id) => PEOPLE.list.find((P) => P.seat === id)).filter(Boolean).forEach((P, i) => { // aisle side first P.seq = []; P.seqDone = null; let end;
+  [...inner].reverse().map((id) => PEOPLE.list.find((P) => P.seat === id)).filter(Boolean).forEach((P, i) => { P.seq = []; P.seqDone = null; let end; // aisle side first
     if (S.roomy) end = poseFor("kneesAside", P.side);
     else if (i === 0) end = poseFor("steppedBack", P.side);
     else { P.base = seatRoot(P.seat); P.base.x += 0.48 * P.side; P.slid = true; end = { ...poseFor("steppedBack", P.side), _root: [0.62 * P.side, -0.02, 0.62 + 0.55 * i] }; }
