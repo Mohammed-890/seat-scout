@@ -1,5 +1,5 @@
 /* Exterior scenery (illustrative, not live route imagery): sky dome, three procedural cloud layers, distant ground
-   with city lights at night. Rendered in a separate pass with its own far-plane camera that copies the cabin camera's
+   (daytime only). Rendered in a separate pass with its own far-plane camera that copies the cabin camera's
    orientation and projection, so the cabin keeps a tight depth range and clouds can be kilometres away.
    Clouds sit far below (deck, cumulus) or far above (cirrus) the aircraft, so they can never pass through it.
    Motion: everything outside drifts toward the tail (+z) because the aircraft flies toward -z. The wing is part of
@@ -86,15 +86,15 @@ function setPreset(name) {
   for (const [L, cfg] of [[L_DECK, P.deck], [L_CUMULUS, P.cum]]) { const u = L.material.uniforms; u.cov.value = cfg.cov; u.lit.value.copy(cfg.lit); u.shade.value.copy(cfg.shade); u.haze.value.copy(P.horizon); }
   L_CIRRUS.visible = P.cirrus > 0; L_CIRRUS.material.uniforms.opacity.value = P.cirrus; L_CIRRUS.material.uniforms.lit.value.copy(P.deck.lit); L_CIRRUS.material.uniforms.shade.value.copy(P.deck.lit).multiplyScalar(0.8); L_CIRRUS.material.uniforms.haze.value.copy(P.horizon);
   const g = L_GROUND.material.uniforms; g.ground.value.copy(P.ground); g.city.value = P.city; g.haze.value.copy(P.horizon).lerp(P.below, 0.5);
-  // cabin lighting follows the outside light. At night the "sun" is moonlight and the cabin strips dim to cruise lighting.
+  // cabin lighting follows the outside light.
   const cb = P.cabin;
-  SUN_DIR.copy(name === "night" ? skyU.moonDir.value : sd); sun.intensity = cb.sun; sun.color.set(cb.sunCol);
+  SUN_DIR.copy(sd); sun.intensity = cb.sun; sun.color.set(cb.sunCol);
   if (CABIN_LIGHTS.hemi) { CABIN_LIGHTS.hemi.intensity = cb.hemi; CABIN_LIGHTS.hemi.color.set(cb.hemiSky); CABIN_LIGHTS.hemi.groundColor.set(cb.hemiGround); }
   for (const a of CABIN_LIGHTS.strips) { a.intensity = cb.strip; a.color.set(cb.stripCol); }
   if (CABIN_LIGHTS.ceil) CABIN_LIGHTS.ceil.intensity = cb.ceil;
   renderer.toneMappingExposure = cb.exposure;
   for (const [m, v] of ENV_BASE) m.envMapIntensity = v * cb.env;
-  M.cove.color.setScalar(name === "night" ? 0.55 : 1.22); M.led.color.setRGB(1.6, 1.5, 1.35);
+  M.cove.color.setScalar(1.22); M.led.color.setRGB(1.6, 1.5, 1.35);
   if (typeof shadowAt !== "undefined") { shadowAt = null; placeSun(eye.lengthSq() ? eye : new THREE.Vector3(0, 1, ZC)); }
   if (window.onPresetChange) window.onPresetChange(name);
   dirty = true;

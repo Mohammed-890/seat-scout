@@ -48,7 +48,7 @@ button{cursor:pointer}
 .views button:hover{color:var(--text)}
 .views button[aria-pressed="true"]{background:var(--text);color:#0b1222}
 .views button:disabled{opacity:.4;cursor:default}
-.legal{position:absolute;left:18px;bottom:14px;z-index:3;font-size:11.5px;color:rgba(238,240,244,.55);pointer-events:none}
+.legal{position:absolute;left:14px;bottom:12px;z-index:3;font-size:11.5px;color:rgba(238,240,244,.78);pointer-events:none;background:rgba(7,12,24,.55);padding:4px 9px;border-radius:999px}
 .skip{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;border:1px solid var(--line2);background:rgba(7,12,24,.85);border-radius:999px;padding:7px 14px;font-size:13px}
 .toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:9;padding:8px 14px;border-radius:10px;background:rgba(7,12,24,.92);border:1px solid var(--line2);font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
@@ -118,7 +118,7 @@ button{cursor:pointer}
 .kind b{flex:none;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:5px;background:var(--line);color:var(--muted);min-width:78px;text-align:center}
 .flag{font-size:12px;font-weight:600;color:var(--dim)}
 .best.outdated{opacity:.55}
-.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
 .chips button{flex:none;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--muted);white-space:nowrap}
 .chips button:hover{color:var(--text)}
 .composer{display:flex;gap:8px}
@@ -173,7 +173,7 @@ dialog.about::backdrop{background:rgba(3,6,14,.7)}
   .brand .long,.brand .logo{display:none}.brand button{margin-left:0}
   .views{top:calc(54px + env(safe-area-inset-top));left:12px;right:12px;transform:none}
   .views button{flex:1;padding:8px 4px;font-size:12.5px;min-height:38px}
-  .legal{left:88px;right:12px;bottom:auto;top:calc(12px + env(safe-area-inset-top));font-size:10.5px;line-height:1.35}
+  .legal{left:88px;right:12px;bottom:auto;top:calc(12px + env(safe-area-inset-top));font-size:10.5px;line-height:1.35;background:none;padding:0;border-radius:0}
   .skip{bottom:calc(var(--sheet-h,210px) + 12px)}
   .toast{top:calc(106px + env(safe-area-inset-top))}
   .panel{top:auto;left:0;width:auto;height:var(--sheet-h,210px);border-left:0;border-top:1px solid var(--line2);border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);transition:height .35s var(--ease)}
@@ -230,7 +230,7 @@ dialog.about::backdrop{background:rgba(3,6,14,.7)}
       <p class="mode" id="modeText">Connecting…</p>
       <div class="log" id="log" aria-live="polite"></div>
       <div class="chips" id="chips"></div>
-      <div class="composer"><label for="q" class="sr">Message the assistant</label><textarea id="q" rows="1" placeholder="Who's travelling, your budget, what matters most"></textarea><button class="btn primary" id="send">Send</button></div>
+      <div class="composer"><label for="q" class="sr">Message the assistant</label><textarea id="q" rows="1" placeholder="Who's travelling, budget, preferences…"></textarea><button class="btn primary" id="send">Send</button></div>
     </div>
     <div class="pane" id="pM" role="tabpanel" aria-labelledby="tabM">
       <div class="legend"><span>Number = price (£)</span><span>× taken</span><span>Dashed = recommended</span><span>Round = selected</span></div>

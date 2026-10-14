@@ -15,8 +15,9 @@ const camera=new THREE.PerspectiveCamera(52,16/9,0.03,400);
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 renderer.autoClear=false;
 /* Quality: "low" lowers pixel ratio and shadow resolution and stops scenery motion. Chosen automatically when a
-   measured frame time is slow (see PERF in the loop), and switchable by the user. */
-let QUALITY={low:false};try{QUALITY.low=localStorage.getItem("ss-quality")==="low"}catch(e){}
+   measured frame interval stays slow while animating (see autoQuality). A stored "high" or "low" pins the choice. */
+let QUALITY={low:false,pinned:false};try{const q=localStorage.getItem("ss-quality");QUALITY.low=q==="low";QUALITY.pinned=q==="low"||q==="high"}catch(e){}
+function autoQuality(){if(QUALITY.low||QUALITY.pinned||PERF.gap.length<30)return;const g=[...PERF.gap].sort((a,b)=>a-b)[PERF.gap.length>>1];if(g>45){QUALITY.low=true;applyQuality()}}
 const FRAME_HOOKS=[];
 const maxAniso=Math.min(8,renderer.capabilities.getMaxAnisotropy());
 
@@ -176,9 +177,9 @@ for(const side of[-1,1]){
  for(let i=0;i<p.count;i++){const x=p.getX(i);p.setY(i,2.3-x*x/18.4);p.setZ(i,p.getZ(i)+Z0+L/2)}g.computeVertexNormals();upper.add(mesh(g,M.ceil,true,true))}
 
 /* ---------- instancing ---------- */
-const instances=new Map();let curTag=null,curPart=null;const _q=new THREE.Quaternion(),_e=new THREE.Euler(),_v=new THREE.Vector3(),_s=new THREE.Vector3();
-function put(geo,mat,parentM,x,y,z,rx=0,rz=0,sx=1,sy=1,sz=1,cast=true,ry=0){const key=geo.uuid+"|"+mat.uuid;let it=instances.get(key);if(!it){it={geo,mat,list:[],tags:[],parts:[],cast};instances.set(key,it)}
-  _e.set(rx,ry,rz);_q.setFromEuler(_e);_v.set(x,y,z);_s.set(sx,sy,sz);const m=new THREE.Matrix4().compose(_v,_q,_s);it.list.push(parentM?new THREE.Matrix4().multiplyMatrices(parentM,m):m);it.tags.push(curTag);it.parts.push(curPart)}
+const instances=new Map();let curTag=null;const _q=new THREE.Quaternion(),_e=new THREE.Euler(),_v=new THREE.Vector3(),_s=new THREE.Vector3();
+function put(geo,mat,parentM,x,y,z,rx=0,rz=0,sx=1,sy=1,sz=1,cast=true,ry=0){const key=geo.uuid+"|"+mat.uuid;let it=instances.get(key);if(!it){it={geo,mat,list:[],tags:[],cast};instances.set(key,it)}
+  _e.set(rx,ry,rz);_q.setFromEuler(_e);_v.set(x,y,z);_s.set(sx,sy,sz);const m=new THREE.Matrix4().compose(_v,_q,_s);it.list.push(parentM?new THREE.Matrix4().multiplyMatrices(parentM,m):m);it.tags.push(curTag)}
 
 // PSU per row: reading lights, gaspers, sign panel; row labels on the bin lip
 const SIGNG=new THREE.PlaneGeometry(0.09,0.034),LAMPG=new THREE.CylinderGeometry(0.017,0.017,0.006,20),GASP=new THREE.CylinderGeometry(0.012,0.016,0.018,16),LATCH=plate(0.11,0.022,0.008,0.012,0.003);
@@ -260,15 +261,12 @@ const AO_M=new THREE.MeshBasicMaterial({color:0x000000,alphaMap:blobTex(),transp
 for(let r=1;r<=30;r++){
   for(const Lt of LETTERS){const s=SEATS[r+Lt],x=seatX(Lt),bz=backZ[r],cover=s.pitch>29?M.fabricXL:M.fabric;curTag=s.id;
     const base=new THREE.Matrix4().makeTranslation(x,0,bz);
-    curPart="base";
     put(P.cushBase,M.trim,base,0,0.305,-0.25);
     put(P.cushion,cover,base,0,0.33,-0.24,-0.04);
     for(const sg of[P.cseam,P.cseam2,P.cseam3])put(sg,M.seam,base,0,0.33,-0.24,-0.04,0,1,1,1,false);
     put(P.vest,M.vest,base,0,0.25,-0.33,Math.PI/2,0,1,1,1,false);
-    curPart="belt";
     put(P.buckle,M.metal,base,0.035,0.46,-0.21,-Math.PI/2+0.04,0.2,1,1,1,false);put(P.strap,M.trim,base,-0.11,0.452,-0.22,-0.04,0.12,1,1,1,false);put(P.strap,M.trim,base,0.13,0.452,-0.2,-0.04,-0.1,1,1,1,false);
     const back=new THREE.Matrix4().multiplyMatrices(base,new THREE.Matrix4().compose(new THREE.Vector3(0,PIVOT_Y,PIVOT_Z),new THREE.Quaternion().setFromEuler(new THREE.Euler(reclineA(s),0,0)),new THREE.Vector3(1,1,1)));
-    curPart="back";
     put(P.shell,M.shell,back,0,0,0);put(P.pad,cover,back,0,0,0);
     for(const sg of[P.seamH,P.seamV,P.seamV2])put(sg,M.seam,back,0,0,0,0,0,1,1,1,false);
     const yh=0.86*(BH-0.03)+0.015,zh=padZ(0.86,0)-0.012;put(P.head,cover,back,0,yh,zh,0.03);put(P.cover,M.linen,back,0,yh+0.01,zh-0.02,0.03,0,1,1,1,false);
@@ -277,14 +275,13 @@ for(let r=1;r<=30;r++){
     put(P.ped,M.trim,back,0,0.93*BH,shellZ(0.93)+0.004,-0.12,0,1,1,1,false);put(P.hook,M.trim,back,0.15,0.86*BH,shellZ(0.86)+0.006,-0.1,0,1,1,1,false);
     put(P.pocket,M.pocket,back,0,0.2,shellZ(0.26)+0.004);put(P.band,M.trim,back,0,0.272,shellZ(0.35)+0.014,0,0,1,1,1,false);
     if(rnd(r*13+Lt.charCodeAt(0))>0.25)put(P.card,M.card,back,-0.06,0.27,shellZ(0.35)+0.008,0,0.04,1,1,1,false);
-    curPart="tray";
     put(P.tray,M.tray,back,0,yt,shellZ(tt)+0.008,-0.03);put(P.latch,M.trim,back,0,yt+0.155,shellZ(0.8)+0.006,-0.08,0,1,1,1,false);
     for(const sx of[-1,1])put(P.trayHinge,M.metalDark,back,sx*0.178,yt-0.118,shellZ(tt)+0.012,0,0,1,1,1,false);
-    const arm=(ax,part)=>{curPart=part;put(P.arm,M.trim,base,ax,0.6,-0.22);put(P.armPad,M.armPad,base,ax,0.631,-0.25);put(P.armPost,M.trim,base,ax,0.49,-0.06);put(P.hinge,M.metalDark,base,ax,0.58,-0.03,0,0,1,1,1,false);
+    const arm=(ax)=>{put(P.arm,M.trim,base,ax,0.6,-0.22);put(P.armPad,M.armPad,base,ax,0.631,-0.25);put(P.armPost,M.trim,base,ax,0.49,-0.06);put(P.hinge,M.metalDark,base,ax,0.58,-0.03,0,0,1,1,1,false);
       put(P.btn,M.metal,base,ax,0.63,-0.39,0,0,1,1,1,false)};
-    arm(-SW/2+0.005,"armL");if(Lt==="C"||Lt==="F")arm(SW/2-0.005,"armR");
+    arm(-SW/2+0.005);if(Lt==="C"||Lt==="F")arm(SW/2-0.005);
   }
-  curTag=null;curPart=null;
+  curTag=null;
   for(const side of[-1,1]){const xx=side*(AISLE/2+1.5*SW);
     put(P.ao,AO_M,null,xx,0.023,backZ[r]-0.24,0,0,3*SW+0.14,1,0.72,false);
     for(const bz of[-0.42,-0.12])put(P.beam,M.metal,null,xx,0.29,backZ[r]+bz,0,0,1,1,1,false);
@@ -620,6 +617,6 @@ function loop(t){requestAnimationFrame(loop);if(document.hidden)return;const dt=
   else{sizeCam(camera,w,h,true);applyOffset(camera,w,h);camera.position.copy(eye).add(leanVec(selected));camera.lookAt(camera.position.clone().add(dirFrom(yaw,pitch)))}
   camera.updateMatrixWorld();
   renderer.clear();renderView(camera);
-  PERF.sample(performance.now()-fs0,t);
+  PERF.sample(performance.now()-fs0,t);autoQuality();
   overlays(rects);
   if(first){first=false;document.getElementById("loading").classList.add("done")}}

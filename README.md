@@ -1,65 +1,78 @@
 # Seat Scout
 
-**Try the seat before you fly.** An independent AI seat-selection prototype: explore an aircraft, sit in any free seat, use the cabin (tray, shade, armrests, reading light, seatbelt, recline), see the view outside, and ask a tool-using concierge to find seats. A deterministic constraint engine decides what's actually allowed, and an execution trace shows why.
+**Seat Scout is an independent concept demo exploring how airlines could improve customer service with AI-assisted seat selection and interactive cabin previews. It helps passengers understand seat options and trade-offs before choosing.**
 
-> All data is synthetic: an illustrative A320neo-style cabin, sample prices and generated availability. Not affiliated with any airline; nothing is booked.
+![Seat Scout: aircraft overview with the seat panel and assistant](docs/screenshots/desktop-recommend.png)
 
-![Aircraft cutaway with three recommended groups lit up](docs/screenshots/after-recommend.png)
+> **Please note**
+> - This is a personal portfolio prototype, not a real airline service.
+> - It is not affiliated with any airline.
+> - The cabin layout, prices and availability are illustrative demo data.
+> - It does not make bookings or connect to live airline systems.
+> - It was built by Mohammed Banabilh with AI assistance (see [AI-assisted development](#ai-assisted-development)).
 
-**Live preview:** [claude.ai artifact](https://claude.ai/artifact/FaweTYWuRkYkGMVkpSTvRa). This is the single-file preview build: the same core and tools in the browser, with Claude reached through the viewer's own claude.ai account when they allow it, or a labelled deterministic mode otherwise. I need to share it publicly before anyone else can open it. The full agent runs server-side from this repository (below).
+**Preview:** a single-file build runs as a [claude.ai artifact](https://claude.ai/artifact/FaweTYWuRkYkGMVkpSTvRa). The artifact is private until I share it, so the link may not open for everyone.
 
-## Why I built this
-I saw a demo of a cinema seat picker and wanted to try a harder, real-world version: plane seats, where the constraints actually matter (budgets, sitting together, rules about children in exit rows, seats disappearing while you decide). It also let me show what I think an AI agent should look like: the model understands people, but code enforces the rules, and you can always ask “why did it choose these seats?” and get a correct, reproducible answer.
+## Run it locally
+Requires Node 20+.
+```bash
+npm install
+npm run dev            # builds the page and starts http://localhost:8787 (rule-based mode, no key needed)
+```
+Optional, for the live AI assistant (the key stays on the server):
+```bash
+ANTHROPIC_API_KEY=... npm start     # optionally SEAT_SCOUT_MODEL=<model id>
+```
 
-## What it does
-**The concierge.** Ask *"We're two adults travelling with a five-year-old. Our total seat budget is £45. We want to sit together, and I'd prefer a window away from the wing."* It separates **requirements** (budget, party, sitting together, demo eligibility policy, any seat position you name) from **preferences** ("prefer a window", "away from the wing"). Budget, availability, adjacency and eligibility are enforced **in code**. The options are lit up in the aircraft and explained with statements tagged Fact / Calculated / Preference / Estimate. Follow-ups patch only the fields that change: "Actually, £25 maximum.", "Keep the window preference.", "Why not row 6?", "I care more about getting out easily.". Each card offers scene actions: *View these seats, Compare the alternative, Show the window view, Try getting out, Preview the available space.*
+## What you can do
+1. **Choose a seat** in the 3D aircraft or on the seat map. Taken seats can't be chosen.
+2. **See it from the seat**: the forward view, the window view and a legroom view with the modelled space at knee height.
+3. **Read the key details**: price, seat pitch, window position and aisle access in plain words ("You would pass two seats to reach the aisle.").
+4. **Ask the assistant** about who is travelling, your budget and what matters to you, for example:
+   > We're two adults travelling with a five-year-old. Our total seat budget is £45. We want to sit together, and I'd prefer a window away from the wing.
 
-**The aircraft and cabin.** A cutaway framed to fit the free screen area, with lofted, tapered, swept wings, sharklets, lathe-profiled engines and a cutaway edge. Selecting a seat flies the camera to its seated eye position; going back keeps your orientation. From the seat you can use the cabin objects that seat actually has (row 1 has no seat-back tray; wall and exit-row armrests don't lift), each with a hover/focus cue, an on-screen hotspot, a toolbar button and a keyboard shortcut. The recline preview steps into the aisle behind and shows how much space the passenger behind loses, measured in the model.
+   It answers with one best recommendation, its price and a short reason, plus a **View seat** button. Alternatives and the detailed reasoning are folded away. If you change your requirements ("Actually, £25 maximum."), earlier recommendations are marked **outdated** and can no longer be selected. **Select (demo)** re-checks the seats against current availability; nothing is booked.
 
-**Outside.** Day above the clouds, warm sunset, or clear night with restrained stars and city lights. The presets also set the cabin lighting, and window shades block the sunlight. Clouds drift toward the tail while the wing stays fixed. The scenery is illustrative, not live route imagery.
-
-**Try getting out.** From a window or middle seat, the neighbours between you and the aisle stand into the aisle (aisle side first), or swing their knees aside where the pitch allows. The panel counts the people who moved, the trays folded and the seat pitch, and states the window-vs-aisle tradeoff. It's an illustration, not a timing or accessibility measure.
-
-**Cabin Playground (optional, off by default).** Fictional, stylised passengers: one asleep by the aisle, an armrest hog, someone in headphones who misses your first "Excuse me", someone balancing a coffee. There are cartoon-style reactions to a nudge, a playful shove or a cheek tap, with bounded wobbles and everyone back in place afterwards. Playground never changes availability.
-
-| Before | After |
-|---|---|
-| ![Before: aircraft](docs/screenshots/before-aircraft.png) | ![After: aircraft](docs/screenshots/after-aircraft.png) |
-| ![Before: forward view](docs/screenshots/before-forward.png) | ![After: forward view](docs/screenshots/after-seat-forward.png) |
-| ![Before: window view](docs/screenshots/before-window.png) | ![After: window at night, 21A](docs/screenshots/after-window-night.png) |
+Comparison of two seats is available from the seat panel as a small table. Traces, evaluation results, failure-recovery demos and architecture notes are in **About this project**.
 
 | | |
 |---|---|
-| ![Sunset preset](docs/screenshots/after-window-sunset.png) | ![Cabin objects: tray down, reading light, armrest up, belt unfastened](docs/screenshots/after-objects.png) |
-| ![Recline preview](docs/screenshots/after-recline.png) | ![Try getting out](docs/screenshots/after-exit.png) |
-| ![Cabin Playground](docs/screenshots/after-playground.png) | ![Engineering: deterministic evaluation](docs/screenshots/after-engineering.png) |
-| ![Mobile seat view](docs/screenshots/after-mobile-seat.png) | ![Without WebGL: 2D map fallback](docs/screenshots/after-no-webgl.png) |
+| ![Window view from 14A](docs/screenshots/desktop-seat-window.png) | ![Legroom view from 17C](docs/screenshots/desktop-legroom.png) |
+| ![Mobile: compact bottom sheet](docs/screenshots/mobile-aircraft.png) | ![Mobile: assistant](docs/screenshots/mobile-assistant.png) |
 
-Screenshots were rendered with software WebGL in a headless browser.
+Screenshots were rendered with software WebGL in a headless browser. The 3D cabin and scenery are simplified procedural models, not photorealistic.
+
+## Live AI vs the rule-based fallback
+The assistant runs in one of two modes, and the app always says which:
+
+- **Live AI** (when `ANTHROPIC_API_KEY` is set on the server): Claude interprets the request, calls tools and writes the explanation.
+- **Rule-based fallback** (no key, or if the model fails): a deterministic parser for common English and Arabic phrasings drives the same tools. It is labelled "rule-based mode, no AI model connected".
+
+In both modes, prices, availability, sitting together and the demo eligibility rules are computed and checked by ordinary code, and every recommendation is re-validated before it is shown or selected. In the claude.ai preview, the same core runs in the page and Claude is reached through the viewer's own claude.ai account when they allow it; otherwise the rule-based mode answers.
+
+---
 
 ## How it works
 See [docs/architecture.md](docs/architecture.md) for the diagram and trust boundaries.
 
-- **One canonical dataset** (`data/`, generated reproducibly by `scripts/generate-data.ts`) feeds the 3D geometry, seat map, tools and cards. Every attribute carries provenance: synthetic, estimated or calculated.
-- **Deterministic core** (`src/core/`): group enumeration, hard constraints with explicit exclusion reasons, transparent scoring components, relaxation analysis when nothing fits, an independent validator, and grounded explanations.
-- **Agent** (`src/agent/`): one bounded tool-use loop (≤8 steps, model and tool timeouts) with eight zod-validated tools. The model interprets the request and explains the results; it never computes prices, eligibility or adjacency. Every submitted recommendation is re-validated, and cards are built from data, not model text. If the model fails, a rule-based planner (English + Arabic) answers through the same tools, and the answer is labelled as such.
-- **State** (`src/core/state.ts`): structured trip preferences persisted separately from the conversation; versioned availability snapshots per session.
-- **Server** (`src/server/`): Node HTTP with HttpOnly session cookies, per-session isolation and rate limits, body validation, and the API key kept server-side. Turns stream their real trace events as NDJSON (the progress you see while waiting). One turn runs at a time per session (409 otherwise), and retries reuse a request id so a turn is never applied twice.
-- **Front end** (`web/`): `cabin3d.js` (aircraft, instanced cabin, camera), `interact.js` (cabin objects), `scenery.js` (sky and clouds, loaded after the first frame), `people.js` (passengers, loaded on first use), `flat.js` (fallback without WebGL), `ui.js` (interface). Shaders are precompiled while loading; animated parts refresh the static shadow map only when they stop.
-- **Engineering view**: the real execution trace (parsed request, constraints, tool calls with validated arguments, candidates, exclusions, scores, validation, model usage and latency), linked to seats in the 3D scene. It is an application log, not model reasoning.
+- **One dataset** (`data/`, generated reproducibly by `scripts/generate-data.ts`) feeds the 3D cabin, seat map, tools and cards. Each attribute is marked synthetic, estimated or calculated.
+- **Deterministic core** (`src/core/`): group enumeration, hard constraints with explicit exclusion reasons, transparent scoring, relaxation analysis when nothing fits, an independent validator and grounded explanations.
+- **Agent** (`src/agent/`): one bounded tool-use loop (at most 8 steps, model and tool timeouts) with zod-validated tools. The model never computes prices, eligibility or adjacency; cards are built from data, not model text.
+- **State** (`src/core/state.ts`): structured trip requirements kept separately from the conversation, so follow-ups change only what you mention; versioned availability snapshots per session.
+- **Server** (`src/server/`): Node HTTP with HttpOnly session cookies, per-session rate limits, body validation, and the API key kept server-side. Turns stream their real trace events as NDJSON (the progress shown while waiting). One turn runs at a time per session, and a retry reuses its request id so a turn is never applied twice.
+- **Front end** (`web/`): `cabin3d.js` (aircraft, instanced cabin, camera), `scenery.js` (sky and clouds, loaded after the first frame), `flat.js` (2D fallback without WebGL), `ui.js` (seat panel, assistant, About dialog). Render quality drops automatically if frames stay slow.
 
-### Key tradeoffs
-- *Model interprets, code decides:* less “creative” flexibility, verifiable correctness.
-- *One agent, not many:* predictable latency and failure modes.
-- *Structured state over chat history:* follow-ups can't silently drop constraints.
+### Trade-offs
+- *Model interprets, code decides:* less flexibility, verifiable correctness.
+- *Structured state over chat history:* follow-ups can't silently drop requirements.
 - *Re-validate at the end:* handles seats disappearing mid-conversation.
 - *Deterministic fallback:* always answers, with narrower language understanding.
 - *Procedural 3D:* lightweight and licence-free, not photoreal.
 
-## Evaluation (actual results)
-47 cases in `eval/cases.json`, checked by `eval/checks.ts` against the raw data files (not the engine). Categories: strict budgets, adjacent groups, window/aisle, unavailable seats, no feasible solution, multi-turn changes, ambiguous requests, eligibility rules, Arabic and English, and override/injection attempts.
+## Evaluation
+47 cases in `eval/cases.json`, checked by `eval/checks.ts` against the raw data files (not the engine): strict budgets, adjacent groups, window/aisle, unavailable seats, no feasible solution, multi-turn changes, ambiguous requests, eligibility rules, Arabic and English, and override attempts.
 
-**Deterministic run, 2026-10-14** (rule-based parser + tools; no model involved). Every figure shows its numerator and denominator:
+**Deterministic run** (rule-based parser + tools; no model involved):
 
 | Metric | Tool-grounded pipeline | Naive baseline (same parser, no constraint engine) |
 |---|---|---|
@@ -72,58 +85,27 @@ See [docs/architecture.md](docs/architecture.md) for the diagram and trust bound
 | Multi-turn state (fields) | 16/16 | 16/16 |
 | Unsupported numeric claims | 0 | 0 |
 
-**What changed, and why an earlier panel said "100% hard constraints" with two failures.** Cases `nofeas-05` ("1 adult, window, total £2") and `ar-03` (Arabic, "alone, window seat, £3") recommended free middle seats. The parser only made a seat position a requirement when the message said "must" or "need", so a bare "window" was stored as a preference. The old metric checked shown seats against the *recorded* constraints, which those seats did meet. The solver was right about the wrong question. Re-running the old parser against the new checks gives request understanding **20/27**, parsed-constraint satisfaction **101/101**, actual-requirement satisfaction **95/101** and impossible requests **4/6** (`eval/results/2026-10-14-deterministic-before-parser-fix.json`). The fix: a named seat position is a requirement unless its clause softens it ("prefer", "ideally", "نفضل"). The cases were strengthened with an explicit `requires` field; none was loosened. Full history: [eval/results/HISTORY.md](eval/results/HISTORY.md).
+An earlier version recommended free middle seats for "1 adult, window, total £2" and the Arabic "alone, window seat, £3", because a bare "window" was stored as a preference. A named seat position is now a requirement unless the clause softens it ("prefer", "ideally", "نفضل"). History: [eval/results/HISTORY.md](eval/results/HISTORY.md).
 
-**Live-model evaluation has not been run** (no API key during development). `npm run eval:live` compares the tool-grounded agent with a no-tools baseline using the same model and settings; no live numbers are claimed anywhere.
+**Live-model evaluation has not been run** (no API key was available). `npm run eval:live` would compare the tool-grounded agent with a no-tools baseline; no live-model numbers are claimed.
 
-**Tests.** `npm test`: 31 unit and integration tests, covering engine, parser, tools, the agent loop with a scripted test double, recovery, sessions, HTTP, streaming, one-turn-per-session and idempotent retries. `npm run test:e2e`: Playwright end-to-end tests of the passenger journey and the verification list (see *Verification* below).
-
-## Verification
-End-to-end tests (`tests/e2e/`, Playwright against the real server in deterministic mode, software WebGL) cover the brief's verification list:
-
-| Area | What is checked |
-|---|---|
-| Known failing eval cases | "1 adult, window, total £2" and the Arabic £3 window request end in an explained no-feasible answer with no seats |
-| Single passenger, family, multi-turn | Recommendations of the right size; "£25 maximum" changes only the budget; "Why not row 6?"; "I care more about getting out easily" raises aisle weight |
-| Impossible budgets, availability, tool timeout | Conflict explained; a taken seat moves availability to snapshot v2 and the top pick changes; a timed-out tool is retried and the trace shows it |
-| Arabic and numerals | Arabic-Indic digits and dual forms |
-| Compare and select | Per-seat prices vs group total; demo selection revalidates and the selected seats appear in the header |
-| Duplicate submissions and retry | One request at a time; a dropped request keeps its message and retries with the same request id |
-| Object interactions | Tray, shade, reading light, belt and armrest states via keyboard and toolbar; unsupported features disabled (wall/bulkhead armrests, no seat-back tray in row 1, shade only at the window) |
-| Recline preview | Shows the modelled effect on the seat behind and returns to the seat |
-| Characters | Nudge, shove, cheek tap and "Excuse me": every passenger stays within its seat or the aisle, wobble stays within its bound, and reset restores everyone |
-| Aisle access | 14A: two people stand at 29 in pitch; 17C (aisle): direct route; skip and reset |
-| Camera interruption | Going back mid-transition and skipping never leave controls disabled |
-| Reduced motion, fallback, mobile | Instant transitions and no scenery motion; `?no3d` shows the 2D map and the concierge works; no horizontal overflow at 390 px; the focused composer stays in the viewport |
-
-Results of the final run are listed in [docs/verification.md](docs/verification.md).
-
-## Run it locally
-Requires Node 20+.
+## Tests
 ```bash
-npm install
-npm run dev                  # builds the web bundle and starts http://localhost:8787 (deterministic mode)
-ANTHROPIC_API_KEY=... npm start   # live agent, server-side (optional: SEAT_SCOUT_MODEL=claude-sonnet-5-5)
-npm test                     # unit + integration
-npm run eval                 # deterministic evaluation → eval/results/
-npx playwright install chromium && npm run test:e2e   # slow with software WebGL
-node scripts/shots.mjs shots          # screenshots of fixed app states (dev tool)
-npm run build:artifact       # single-file preview in artifact/
+npm test                 # unit + integration
+npm run eval             # deterministic evaluation → eval/results/
+npm run test:e2e         # Playwright end-to-end (slow with software WebGL)
+npm run build:artifact   # single-file preview → artifact/
+node scripts/shots.mjs docs/screenshots   # screenshots (dev tool)
 ```
-Cost per turn is shown only if you fill in current prices in `config/pricing.json`. Nothing is hard-coded.
+The end-to-end tests cover seat selection, the three seat views, key details, recommendations, a budget change with outdated marking, family seating, impossible requests, the two previously failing evaluation cases, availability changes, tool-timeout recovery, demo selection, duplicate submissions and retry, camera interruption, reduced motion, the mobile bottom sheet and the no-WebGL fallback. Latest results: [docs/verification.md](docs/verification.md).
 
 ## Known limitations
-- Synthetic data only; the A320neo-style layout is illustrative, and real cabins vary by airline. Scenery is illustrative.
-- All 3D assets are procedural. There are no licensed cabin or human models, so the Playground passengers are **stylised** clay-like figures with keyframed poses, not realistic people or motion-captured animation. Their bounded reactions are tested; their animation quality is limited.
-- Movement paths avoid geometry by construction (aisle-side passengers swivel into the aisle; inner passengers slide over first). There is no general collision system.
-- Knee space, recline effects and window alignment come from the 3D model; noise is a coarse zone label. Body clearance uses a population average, and height alone doesn't predict comfort.
-- The exit-row rules are an explicit **demo policy** (`data/policy.demo.json`), not any airline's.
-- The rule-based fallback handles common English/Arabic phrasings only. Groups larger than three, or split seating, aren't supported.
-- Performance was only measured with software WebGL (SwiftShader) in a headless container, where a full-screen cabin frame takes seconds. No frame-rate figure for real GPUs is claimed. The app records frame times in the browser (Engineering → Performance) and offers a Low quality mode.
-- Mobile keyboard handling uses `visualViewport`; it was checked in a mobile-sized headless browser (the composer stays inside the viewport when focused), not on physical phones.
-- No live-model evaluation numbers yet.
+- Illustrative A320neo-style layout, sample prices and generated availability. Real cabins vary by airline.
+- Space at knee height and window position come from a simplified 3D model; body clearance is an estimate, and height alone doesn't predict comfort.
+- The exit-row rules are an explicit demo policy (`data/policy.demo.json`), not any airline's.
+- The rule-based fallback handles common English and Arabic phrasings only. Groups larger than three, or split seating, aren't supported.
+- Performance was only observed with software rendering in a headless container. No frame-rate figure for real hardware is claimed.
+- Mobile layout was checked in a 390 × 844 headless viewport, not on physical phones.
 
 ## AI-assisted development
-**I created Seat Scout with AI coding assistance.** I chose the problem; wrote the requirement briefs that set the product direction and quality bar (realism, the aircraft-to-seat camera sequence, grounded tool use, the execution trace, the evaluation suite, failure-recovery demos, and in this iteration the correctness fix, interactive cabin, scenery, Playground and aisle-access demo); and reviewed the renders and results, asking for changes, such as not spending my own AI credits when other people use the preview and making the assistant answer general questions. I used AI (Claude, through Claude Code) to write the code, tests, evaluation suite and documentation, to debug rendering and test failures, and to run the evaluations reported above. I didn't hand-write the generated code. Commits made with AI assistance carry a `Co-Authored-By` trailer.
-
-[docs/demo-script.md](docs/demo-script.md) is a three-minute walkthrough.
+**I created Seat Scout with AI coding assistance.** I chose the problem (inspired by a cinema seat-picker demo), wrote the requirement briefs that set the product direction and quality bar, and reviewed the results, asking for changes — including this simplification. I used AI (Claude, through Claude Code) to write the code, tests, evaluation suite and documentation, to debug, and to run the evaluations reported above. I didn't hand-write the generated code. Commits made with AI assistance carry a `Co-Authored-By` trailer.
