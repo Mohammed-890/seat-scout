@@ -61,7 +61,7 @@ function renderCard(){const s=SEATS[selected];$("cId").textContent=s.id;$("cPric
   const g=groupOf(s.id),sel=$("cSelect");
   sel.textContent=mineGroup&&mineGroup.includes(s.id)?"Selected":g&&g.length>1?`Select ${span(g)} (demo)`:"Select seat (demo)";sel.disabled=!!(mineGroup&&mineGroup.includes(s.id))||busy;
   const go=$("cGo");go.hidden=!(view==="AIR"||view==="T")||!!window.NO3D;go.disabled=view==="T";
-  $("cCompare").textContent=cmpArm?"Cancel compare":"Compare";
+  $("cCompare").textContent=cmpArm?"Cancel compare":"Compare with another seat";
   $("cFacts").innerHTML=[["Seat pitch",`<span class="num">${inch(s.pitch)}</span><span class="fine">Row spacing, not the room your knees get</span>`],
     ["Space at knee height",`<span class="num">${s.kneeCm} cm</span><span class="fine">Modelled estimate from the 3D cabin</span>`],
     ["Window",esc(windowText(s))],["Aisle access",esc(aisleText(s))],["Recline",s.recline==="limited"?"Limited in this row":"Standard for this layout"],
@@ -139,7 +139,7 @@ const FOLLOWUPS=["Make it £10 or less.","I care more about getting out easily."
 function chipRow(el,items){el.innerHTML="";items.forEach(t=>{const b=document.createElement("button");b.textContent=t;b.onclick=()=>{if(busy)return;qEl.value=t;send()};el.append(b)})}
 chipRow($("chips"),STARTERS);chipRow($("followups"),FOLLOWUPS);
 let busy=false,lastResult=null;
-function addMsg(cls,text){const d=document.createElement("div");d.className="msg "+cls;if(text)d.textContent=text;logEl.append(d);d.scrollIntoView({block:"nearest"});return d}
+function addMsg(cls,text){const d=document.createElement("div");d.className="msg "+cls;if(text)d.textContent=text;logEl.append(d);const fd=$("feed");if(isMobile())d.scrollIntoView({block:"nearest"});else fd.scrollTop=fd.scrollHeight;return d}
 const KIND={fact:"Fact",calculated:"Calculated",judgement:"Your preference",estimate:"Estimate"};
 function viewSeats(seats){const id=seats.find(x=>SEATS[x].position==="window")||seats[0];if(view==="AIR"){ui.select(id);enterSeat(id,"F")}else enterSeat(id,view==="T"||view==="R"?"F":view);if(isMobile())setSheet("compact")}
 function partyLine(st){const t=st.travellers||[],n=k=>t.filter(x=>x.type===k).length,parts=[];if(n("adult"))parts.push(`${n("adult")} adult${n("adult")>1?"s":""}`);if(n("child"))parts.push(`${n("child")} child${n("child")>1?"ren":""}`);if(n("infant"))parts.push(`${n("infant")} infant${n("infant")>1?"s":""}`);return parts.join(", ")}
@@ -187,7 +187,7 @@ function showResult(bubble,r){lastResult=r;applyAvailability(r);markOutdated(r);
       d.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>viewSeats(r.groups[Number(b.dataset.i)].seats));bubble.append(d)}
     if(r.outcome==="clarify")recs=[]}
   $("intro").hidden=true;
-  focus={seats:[],tone:null};ui.sync();applyHighlights();bubble.scrollIntoView({block:"nearest"})}
+  focus={seats:[],tone:null};ui.sync();applyHighlights();if(isMobile())bubble.scrollIntoView({block:"start"});else{const fd=$("feed");fd.scrollTop=Math.max(0,bubble.offsetTop-fd.offsetTop-8)}}
 const newId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 /* One request at a time; a failed message keeps a Retry that reuses its request id (the server then returns the
    stored answer instead of applying the turn twice). Progress lines are real execution events. */

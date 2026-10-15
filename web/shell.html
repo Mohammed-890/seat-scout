@@ -69,8 +69,8 @@ button{cursor:pointer}
 /* panel: an ivory boarding pass */
 .panel{position:absolute;top:0;right:0;bottom:0;width:var(--panel-w);background:var(--ivory);display:flex;flex-direction:column;z-index:6;overflow:hidden}
 .handle{display:none}
-.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;display:flex;flex-direction:column}
-.pass{padding:22px 24px 18px;display:grid;gap:14px}
+.scroll{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.pass{padding:22px 24px 14px;display:grid;gap:14px;flex:none;max-height:58%;overflow-y:auto;scrollbar-width:thin}
 .pass-h{display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:end}
 .seat-id{font:600 40px/1 var(--mono);letter-spacing:-.02em;color:var(--ink)}
 .seat-pos{grid-column:1;font-size:13.5px;color:var(--ink2)}
@@ -128,7 +128,7 @@ button{cursor:pointer}
 .cmp td:first-child,.cmp th:first-child{text-align:left;color:var(--ink2);font-weight:500}
 .cmp td.num{font-family:var(--mono)}
 .cmp .key{margin:0;font-size:13px}
-.link{border:0;background:none;padding:0;color:var(--ink);font-size:13px;text-decoration:underline;text-decoration-color:var(--alu);text-underline-offset:3px}
+.link{justify-self:start;border:0;background:none;padding:0;color:var(--ink);font-size:13px;text-decoration:underline;text-decoration-color:var(--alu);text-underline-offset:3px}
 .link:hover{text-decoration-color:var(--ink)}
 
 /* the perforated tear line between the pass and the adviser stub */
@@ -141,12 +141,14 @@ button{cursor:pointer}
 .tabs button{border:0;background:transparent;padding:8px 0;font-size:13.5px;font-weight:600;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--amber)}
 .pane{display:none;flex-direction:column;gap:12px;flex:1;min-height:0}
+#pM{overflow-y:auto}
+.feed{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;display:flex;flex-direction:column;gap:10px}
 .pane.on{display:flex}
 .intro h2{margin:2px 0 4px;font-size:19px;line-height:1.3;font-weight:600;letter-spacing:-.01em}
 .intro p{margin:0 0 12px;color:var(--ink2);font-size:13.5px}
 .mode{font-size:12px;color:var(--ink3);margin:0}
 .log{display:flex;flex-direction:column;gap:10px}
-.msg{scroll-margin-bottom:180px;border-radius:var(--r-m);padding:10px 12px;font-size:13.5px;white-space:pre-wrap}
+.msg{border-radius:var(--r-m);padding:10px 12px;font-size:13.5px;white-space:pre-wrap}
 .msg.user{align-self:flex-end;max-width:88%;background:var(--ink);color:var(--ivory)}
 .msg.bot{align-self:stretch;background:var(--paper);border:1px solid var(--rule)}
 .msg.failed{border-color:var(--bad)}
@@ -178,7 +180,7 @@ button{cursor:pointer}
 .composer{display:flex;gap:8px}
 .composer textarea{flex:1;min-width:0;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-m);padding:10px 12px;resize:none;height:44px;color:var(--ink)}
 .composer textarea::placeholder{color:var(--ink3)}
-.stick{position:sticky;bottom:0;background:var(--ivory);padding-top:8px;display:grid;gap:8px;margin-top:auto}
+.stick{flex:none;display:grid;gap:8px}
 
 /* seat chart */
 .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2)}
@@ -242,6 +244,11 @@ dialog.about::backdrop{background:rgba(8,14,26,.7)}
   .panel.compact .drawer,.panel.compact .cmp,.panel.compact #cCompare,.panel.compact .perf,.panel.compact .stub{display:none!important}
   .panel:not(.compact) .find-m{display:none}
   .panel.compact .scroll{overflow:hidden}
+  .pass{max-height:none;overflow:visible}
+  .panel:not(.compact) .scroll{overflow-y:auto}
+  .stub,.feed{flex:none;overflow:visible}.pane{flex:none}
+  .stick{position:sticky;bottom:0;background:var(--ivory);padding:8px 0 4px}
+  .msg{scroll-margin-top:8px}
   body.kb .panel{height:calc(var(--vvh,100dvh) - 10px)!important}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -277,7 +284,8 @@ dialog.about::backdrop{background:rgba(8,14,26,.7)}
         </div>
         <ul class="points" id="cPoints"></ul>
         <div class="mine" id="cMine" hidden></div>
-        <div class="btns" id="cBtns"><button class="btn amber find-m" id="cFind">Find my seat</button><button class="btn" id="cSelect">Select seat (demo)</button><button class="btn" id="cGo">Sit here</button><button class="btn ghost" id="cCompare">Compare</button></div>
+        <div class="btns" id="cBtns"><button class="btn amber find-m" id="cFind">Find my seat</button><button class="btn" id="cSelect">Select seat (demo)</button><button class="btn" id="cGo">Sit here</button></div>
+        <button class="link" id="cCompare">Compare with another seat</button>
         <div class="cmp" id="cmp" hidden></div>
         <div>
           <details class="drawer" id="dDetails"><summary>Seat details</summary><div class="in">
@@ -295,12 +303,12 @@ dialog.about::backdrop{background:rgba(8,14,26,.7)}
       <section class="stub">
         <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-t="c" id="tabC">Find my seat</button><button role="tab" aria-selected="false" data-t="m" id="tabM">Browse seats</button></div>
         <div class="pane on" id="pC" role="tabpanel" aria-labelledby="tabC">
-          <div class="intro" id="intro">
+          <div class="feed" id="feed"><div class="intro" id="intro">
             <h2>Tell us what makes a good seat for you.</h2>
             <p>Choose one, or describe it in your own words: who's travelling, your budget, what matters most.</p>
             <div class="chips" id="chips"></div>
           </div>
-          <div class="log" id="log" aria-live="polite"></div>
+          <div class="log" id="log" aria-live="polite"></div></div>
           <div class="stick">
             <div class="chips" id="followups" hidden></div>
             <div class="composer"><label for="q" class="sr">Describe the seat you want</label><textarea id="q" rows="1" placeholder="e.g. 2 adults, £45, sit together"></textarea><button class="btn amber" id="send">Find my seat</button></div>
