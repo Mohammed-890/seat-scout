@@ -95,7 +95,7 @@ const M={
   led:new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,1.5,1.35)}),
   ledOff:std({color:0xe8e6e0,roughness:.2,envMapIntensity:1}),
   cove:new THREE.MeshBasicMaterial({color:new THREE.Color(1.25,1.22,1.15)}),
-  reveal:std({color:0xe6e3dd,roughness:.45}),
+  reveal:std({color:0xdcd8cf,roughness:.58}),
   shade:std({color:0xf0eee8,roughness:.6,side:THREE.DoubleSide}),
   pane:new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.04,transparent:true,opacity:.07,envMapIntensity:1.4,depthWrite:false}),
   curtain:std({map:makeFabric([36,52,70],21).map,roughness:.95}),
@@ -152,7 +152,8 @@ for(const side of[-1,1]){
     const ring=rrect(WIN_W+0.12,WIN_H+0.15,0.15);ring.holes.push(new THREE.Path(rrect(WIN_W,WIN_H,0.1).getPoints(14)));
     const rv=mesh(smoothNormals(new THREE.ExtrudeGeometry(ring,{depth:0.016,bevelEnabled:true,bevelSize:0.014,bevelThickness:0.014,bevelSegments:5,curveSegments:16})),M.reveal,true,true);rv.position.z=0.002;grp.add(rv);
     const tm=mesh(new THREE.ExtrudeGeometry(new THREE.Shape(rrect(WIN_W,WIN_H,0.1).getPoints(16)),{depth:0.12,bevelEnabled:false}),[HIDE,TUNNEL],false,true);tm.position.z=-0.12;grp.add(tm);
-    const pane=new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(rrect(WIN_W-0.01,WIN_H-0.01,0.095).getPoints(12))),M.pane);pane.position.z=-0.025;grp.add(pane);
+    const paneG=new THREE.ShapeGeometry(new THREE.Shape(rrect(WIN_W-0.01,WIN_H-0.01,0.095).getPoints(12)));const pane=new THREE.Mesh(paneG,M.pane);pane.position.z=-0.025;grp.add(pane);
+    const outer=new THREE.Mesh(paneG,M.pane);outer.position.z=-0.105;grp.add(outer); // layered glass: inner scratch pane + outer pane
     const amt=rnd(i*5+side*3)<0.28?0.25+rnd(i+side*9)*0.5:0.05;
     const sg=new THREE.PlaneGeometry(WIN_W-0.004,WIN_H);sg.translate(0,-WIN_H/2,0);const sm=mesh(sg,M.shade,true,true);sm.position.set(0,WIN_H/2,-0.035);grp.add(sm);
     const lip=mesh(new THREE.BoxGeometry(WIN_W*0.42,0.014,0.014),M.trim,true);grp.add(lip);
@@ -177,9 +178,9 @@ for(const side of[-1,1]){
  for(let i=0;i<p.count;i++){const x=p.getX(i);p.setY(i,2.3-x*x/18.4);p.setZ(i,p.getZ(i)+Z0+L/2)}g.computeVertexNormals();upper.add(mesh(g,M.ceil,true,true))}
 
 /* ---------- instancing ---------- */
-const instances=new Map();let curTag=null;const _q=new THREE.Quaternion(),_e=new THREE.Euler(),_v=new THREE.Vector3(),_s=new THREE.Vector3();
-function put(geo,mat,parentM,x,y,z,rx=0,rz=0,sx=1,sy=1,sz=1,cast=true,ry=0){const key=geo.uuid+"|"+mat.uuid;let it=instances.get(key);if(!it){it={geo,mat,list:[],tags:[],cast};instances.set(key,it)}
-  _e.set(rx,ry,rz);_q.setFromEuler(_e);_v.set(x,y,z);_s.set(sx,sy,sz);const m=new THREE.Matrix4().compose(_v,_q,_s);it.list.push(parentM?new THREE.Matrix4().multiplyMatrices(parentM,m):m);it.tags.push(curTag)}
+const instances=new Map();let curTag=null,curPart=null;const _q=new THREE.Quaternion(),_e=new THREE.Euler(),_v=new THREE.Vector3(),_s=new THREE.Vector3();
+function put(geo,mat,parentM,x,y,z,rx=0,rz=0,sx=1,sy=1,sz=1,cast=true,ry=0){const key=geo.uuid+"|"+mat.uuid;let it=instances.get(key);if(!it){it={geo,mat,list:[],tags:[],parts:[],cast};instances.set(key,it)}
+  _e.set(rx,ry,rz);_q.setFromEuler(_e);_v.set(x,y,z);_s.set(sx,sy,sz);const m=new THREE.Matrix4().compose(_v,_q,_s);it.list.push(parentM?new THREE.Matrix4().multiplyMatrices(parentM,m):m);it.tags.push(curTag);it.parts.push(curPart)}
 
 // PSU per row: reading lights, gaspers, sign panel; row labels on the bin lip
 const SIGNG=new THREE.PlaneGeometry(0.09,0.034),LAMPG=new THREE.CylinderGeometry(0.017,0.017,0.006,20),GASP=new THREE.CylinderGeometry(0.012,0.016,0.018,16),LATCH=plate(0.11,0.022,0.008,0.012,0.003);
@@ -261,12 +262,15 @@ const AO_M=new THREE.MeshBasicMaterial({color:0x000000,alphaMap:blobTex(),transp
 for(let r=1;r<=30;r++){
   for(const Lt of LETTERS){const s=SEATS[r+Lt],x=seatX(Lt),bz=backZ[r],cover=s.pitch>29?M.fabricXL:M.fabric;curTag=s.id;
     const base=new THREE.Matrix4().makeTranslation(x,0,bz);
+    curPart="base";
     put(P.cushBase,M.trim,base,0,0.305,-0.25);
     put(P.cushion,cover,base,0,0.33,-0.24,-0.04);
     for(const sg of[P.cseam,P.cseam2,P.cseam3])put(sg,M.seam,base,0,0.33,-0.24,-0.04,0,1,1,1,false);
     put(P.vest,M.vest,base,0,0.25,-0.33,Math.PI/2,0,1,1,1,false);
+    curPart="belt";
     put(P.buckle,M.metal,base,0.035,0.46,-0.21,-Math.PI/2+0.04,0.2,1,1,1,false);put(P.strap,M.trim,base,-0.11,0.452,-0.22,-0.04,0.12,1,1,1,false);put(P.strap,M.trim,base,0.13,0.452,-0.2,-0.04,-0.1,1,1,1,false);
     const back=new THREE.Matrix4().multiplyMatrices(base,new THREE.Matrix4().compose(new THREE.Vector3(0,PIVOT_Y,PIVOT_Z),new THREE.Quaternion().setFromEuler(new THREE.Euler(reclineA(s),0,0)),new THREE.Vector3(1,1,1)));
+    curPart="back";
     put(P.shell,M.shell,back,0,0,0);put(P.pad,cover,back,0,0,0);
     for(const sg of[P.seamH,P.seamV,P.seamV2])put(sg,M.seam,back,0,0,0,0,0,1,1,1,false);
     const yh=0.86*(BH-0.03)+0.015,zh=padZ(0.86,0)-0.012;put(P.head,cover,back,0,yh,zh,0.03);put(P.cover,M.linen,back,0,yh+0.01,zh-0.02,0.03,0,1,1,1,false);
@@ -275,13 +279,14 @@ for(let r=1;r<=30;r++){
     put(P.ped,M.trim,back,0,0.93*BH,shellZ(0.93)+0.004,-0.12,0,1,1,1,false);put(P.hook,M.trim,back,0.15,0.86*BH,shellZ(0.86)+0.006,-0.1,0,1,1,1,false);
     put(P.pocket,M.pocket,back,0,0.2,shellZ(0.26)+0.004);put(P.band,M.trim,back,0,0.272,shellZ(0.35)+0.014,0,0,1,1,1,false);
     if(rnd(r*13+Lt.charCodeAt(0))>0.25)put(P.card,M.card,back,-0.06,0.27,shellZ(0.35)+0.008,0,0.04,1,1,1,false);
+    curPart="tray";
     put(P.tray,M.tray,back,0,yt,shellZ(tt)+0.008,-0.03);put(P.latch,M.trim,back,0,yt+0.155,shellZ(0.8)+0.006,-0.08,0,1,1,1,false);
     for(const sx of[-1,1])put(P.trayHinge,M.metalDark,back,sx*0.178,yt-0.118,shellZ(tt)+0.012,0,0,1,1,1,false);
-    const arm=(ax)=>{put(P.arm,M.trim,base,ax,0.6,-0.22);put(P.armPad,M.armPad,base,ax,0.631,-0.25);put(P.armPost,M.trim,base,ax,0.49,-0.06);put(P.hinge,M.metalDark,base,ax,0.58,-0.03,0,0,1,1,1,false);
+    const arm=(ax,part)=>{curPart=part;put(P.arm,M.trim,base,ax,0.6,-0.22);put(P.armPad,M.armPad,base,ax,0.631,-0.25);put(P.armPost,M.trim,base,ax,0.49,-0.06);put(P.hinge,M.metalDark,base,ax,0.58,-0.03,0,0,1,1,1,false);
       put(P.btn,M.metal,base,ax,0.63,-0.39,0,0,1,1,1,false)};
-    arm(-SW/2+0.005);if(Lt==="C"||Lt==="F")arm(SW/2-0.005);
+    arm(-SW/2+0.005,"armL");if(Lt==="C"||Lt==="F")arm(SW/2-0.005,"armR");
   }
-  curTag=null;
+  curTag=null;curPart=null;
   for(const side of[-1,1]){const xx=side*(AISLE/2+1.5*SW);
     put(P.ao,AO_M,null,xx,0.023,backZ[r]-0.24,0,0,3*SW+0.14,1,0.72,false);
     for(const bz of[-0.42,-0.12])put(P.beam,M.metal,null,xx,0.29,backZ[r]+bz,0,0,1,1,1,false);
@@ -296,6 +301,14 @@ for(const it of instances.values()){const im=new THREE.InstancedMesh(it.geo,it.m
 {const dotG=new THREE.BoxGeometry(0.012,0.004,0.03),dotM=new THREE.MeshBasicMaterial({color:new THREE.Color(1.4,1.2,.9)});
  const n=Math.floor((ZE-BULK)/0.6);const im=new THREE.InstancedMesh(dotG,dotM,n*2);let i=0;
  for(let k=0;k<n;k++)for(const sx of[-1,1])im.setMatrixAt(i++,new THREE.Matrix4().makeTranslation(sx*(AISLE/2+0.01),0.017,BULK+0.3+k*0.6));scene.add(im)}
+
+/* Seat parts registry: hide the instanced copies of one seat's parts and return standalone meshes in the same
+   place, so the selected seat's tray, armrests, belt and back can move without touching the other 179 seats. */
+const ZERO=new THREE.Matrix4().makeScale(0,0,0);
+function seatPartEntries(id,parts){const out=[];for(const im of instMeshes){const it=im.userData.it;for(let i=0;i<it.tags.length;i++)if(it.tags[i]===id&&parts.includes(it.parts[i]))out.push({im,i,geo:it.geo,mat:it.mat,matrix:it.list[i],part:it.parts[i],cast:it.cast})}return out}
+function detachSeatParts(id,parts){const ents=seatPartEntries(id,parts),meshes=[];
+  for(const e of ents){e.im.setMatrixAt(e.i,ZERO);e.im.instanceMatrix.needsUpdate=true;const m=new THREE.Mesh(e.geo,e.mat);m.matrixAutoUpdate=false;m.matrix.copy(e.matrix);m.castShadow=e.cast;m.receiveShadow=true;m.userData.part=e.part;meshes.push(m)}
+  return {meshes,restore(){for(const e of ents){e.im.setMatrixAt(e.i,e.matrix);e.im.instanceMatrix.needsUpdate=true}for(const m of meshes)m.parent&&m.parent.remove(m);renderer.shadowMap.needsUpdate=true;dirty=true}}}
 
 /* Lofted airfoil surfaces (wings, sharklets, fin, stabilisers). Each station: leading-edge point o, chord c along +z,
    thickness ratio t along the unit vector th. NACA-style thickness, light camber; indexed so normals are smooth,
@@ -482,12 +495,12 @@ function viewAngles(id,m){const v=VIEWS[m]||VIEWS.F,o=outSide(id);if(m!=="W")ret
   const e=eyeFor(id),s=SEATS[id];if(s.position==="window")e.add(new THREE.Vector3(o*LEAN.x,LEAN.y,LEAN.z));
   let best=null,bd=1e9;for(const z of WIN){const d=Math.abs(z-(e.z-0.25));if(d<bd){bd=d;best=z}}
   if(best===null||bd>0.9)return {y:v.y*o,p:v.p};
-  const t=new THREE.Vector3(o*R*Math.cos(aWin)*0.97,WIN_Y-0.02,best),d=t.sub(e).normalize();
+  const t=new THREE.Vector3(o*R*Math.cos(aWin)*0.97,WIN_Y-0.03,best),d=t.sub(e).normalize();
   const y=Math.atan2(d.x,-d.z),yc=o*Math.min(Math.abs(y),1.45);return {y:yc,p:Math.max(-0.3,Math.min(0.1,Math.asin(d.y)))}}
 function eyeFor(id){const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),EYE_Y,backZ[s.row]-0.01)}
 /* in the window view a window-seat passenger shifts slightly; others stay put */
-let lean=0,leanGoal=0;function leanFor(id,m){return m==="W"&&SEATS[id].position==="window"?1:0}
-const LEAN={x:-0.03,y:-0.02,z:-0.04};/* sit back from the wall a little so the window is seen with its surroundings */
+let lean=0,leanGoal=0,wz=0;function leanFor(id,m){return m==="W"&&SEATS[id].position==="window"?1:0}
+const LEAN={x:0.1,y:-0.01,z:-0.06};/* lean toward the glass, as a passenger does to look out */
 function leanVec(id){const s=SEATS[id];return new THREE.Vector3((s.letter<="C"?-1:1)*LEAN.x*lean,LEAN.y*lean,LEAN.z*lean)}
 const _m=new THREE.Matrix4(),_up=new THREE.Vector3(0,1,0);
 function quatLook(pos,tgt){_m.lookAt(pos,tgt,_up);return new THREE.Quaternion().setFromRotationMatrix(_m)}
@@ -515,17 +528,24 @@ function makeTransition(from,path,dir,done){let pts=[from.pos,...path.pts],quats
       applyFades({ext:1-sstep(0.05,0.4,w),studio:1-sstep(0.5,0.86,w),upper:sstep(0.88,1,w)});selGlow=1-sstep(0.55,0.85,w);
       if(k>=1){done();return false}return true},finish(){this.step(t0+dur+1)}}}
 function cutTo(fn){if(reduce){fn();dirty=true;return}fadeEl.classList.add("on");setTimeout(()=>{fn();dirty=true;requestAnimationFrame(()=>requestAnimationFrame(()=>fadeEl.classList.remove("on")))},220)}
-function setSeatState(id,m){selected=id;seatView=m;const a=viewAngles(id,m);eye.copy(eyeFor(id));yaw=a.y;pitch=a.p;openShadesNear(eye.z);placeSun(eye);applyFades({ext:0,studio:0,upper:1});selGlow=0}
+function setSeatState(id,m){selected=id;seatView=m;const a=viewAngles(id,m);eye.copy(eyeFor(id));yaw=a.y;pitch=a.p;openShadesNear(eye.z);placeSun(eye);applyFades({ext:0,studio:0,upper:1});selGlow=0;window.onSeatEnter&&onSeatEnter(id)}
+const leaveSeat=()=>{window.onSeatLeave&&onSeatLeave()};
 
 function enterSeat(id,m="F"){if(trans)trans.finish();if(SEATS[id].taken)return;
   if(view==="AIR"){selected=id;view="T";const from={pos:camera.position.clone(),quat:camera.quaternion.clone()};airGoal.stash={az:air.az,pol:air.pol,zoom:air.zoom,target:air.target.clone()};
     openShadesNear(eyeFor(id).z);placeSun(eyeFor(id));
     trans=makeTransition(from,seatPath(id),1,()=>{trans=null;view=m;setSeatState(id,"F");if(m!=="F")rotateTo(m);ui.sync();applyHighlights()});ui.sync();applyHighlights();if(reduce)trans.finish();return}
-  if(id!==selected){cutTo(()=>{view=m;setSeatState(id,m);ui.sync()});return}
+  if(id!==selected){leaveSeat();cutTo(()=>{view=m;setSeatState(id,m);ui.sync()});return}
   rotateTo(m)}
 function rotateTo(m){seatView=m;view=m;const a=viewAngles(selected,m);if(reduce){yaw=a.y;pitch=a.p;dirty=true;ui.sync();return}
   const y0=yaw,p0=pitch,t0=performance.now();anim=t=>{const k=Math.min(1,(t-t0)/650),e=ease(k);yaw=y0+(a.y-y0)*e;pitch=p0+(a.p-p0)*e;if(k>=1)anim=null};ui.sync()}
-function backToAircraft(){if(trans)trans.finish();if(view==="AIR")return;
+/* Reset view: the default framing for the current preset (aircraft overview framed on the selected seat, or the
+   preset's seated angle). Ends a recline preview or skips a transition first. */
+function resetView(){if(view==="T"){skipTransition();return}if(view==="R"){window.EXPLORE&&EXPLORE.finishRecline();return}
+  if(view==="AIR"){const s=SEATS[selected],az0=air.az,p0=air.pol,t0=performance.now();airGoal.target.set(seatX(s.letter)*0.3,0.4,backZ[s.row]);airGoal.zoom=0.78;
+    if(reduce){air.az=-0.95;air.pol=0.92;dirty=true;return}anim=t=>{const k=Math.min(1,(t-t0)/650),e=ease(k);air.az=az0+(-0.95-az0)*e;air.pol=p0+(0.92-p0)*e;if(k>=1)anim=null};dirty=true;return}
+  rotateTo(view)}
+function backToAircraft(){if(trans)trans.finish();if(view==="AIR")return;leaveSeat();if(view==="R"){view="F";camera.position.copy(eye);camera.lookAt(eye.clone().add(dirFrom(yaw,pitch)))}
   const st=airGoal.stash;const s=SEATS[selected];air.target.set(seatX(s.letter)*0.3,0.4,backZ[s.row]);air.zoom=st?Math.min(st.zoom,0.62):0.62;air.az=st?st.az:-0.95;air.pol=st?st.pol:0.92;airGoal.target.copy(air.target);airGoal.zoom=air.zoom;
   const sp=seatPose(selected,yaw,pitch),from={pos:sp.pos.add(leanVec(selected)),quat:sp.quat},ap=airPose();
   const p=seatPath(selected);p.pts[p.pts.length-1]=from.pos;p.quats[p.quats.length-1]=from.quat; // start from wherever the seated view is looking
@@ -563,7 +583,7 @@ function applyHighlights(){const air_=view==="AIR"||view==="T";for(const im of h
 let drag=null;const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 function pickSeat(ev){const r=canvas.getBoundingClientRect();ndc.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
   const hit=ray.intersectObjects(highlightMeshes,false)[0];return hit&&hit.instanceId!=null?hit.object.userData.tags[hit.instanceId]:null}
-canvas.addEventListener("pointerdown",ev=>{if(view==="T")return;drag={x:ev.clientX,y:ev.clientY,az:air.az,pol:air.pol,yaw,pitch,moved:false};canvas.setPointerCapture(ev.pointerId);anim=null});
+canvas.addEventListener("pointerdown",ev=>{if(view==="T"||view==="R")return;drag={x:ev.clientX,y:ev.clientY,az:air.az,pol:air.pol,yaw,pitch,moved:false};canvas.setPointerCapture(ev.pointerId);anim=null});
 canvas.addEventListener("pointermove",ev=>{if(!drag){if(view==="AIR"&&ev.pointerType==="mouse"){const id=pickSeat(ev);if(id!==hover){hover=id;canvas.style.cursor=id&&!SEATS[id].taken?"pointer":"grab";applyHighlights()}}return}
   const dx=ev.clientX-drag.x,dy=ev.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;if(!drag.moved)return;dirty=true;
   if(view==="AIR"){air.az=drag.az-dx*0.005;air.pol=Math.max(0.25,Math.min(1.42,drag.pol-dy*0.004))}
@@ -583,9 +603,9 @@ function label(key,cls,text,v,cam,rect,onclick){let el=pool.get(key);if(!el){el=
   el.style.transform=`translate(${rect.x+(p.x+1)/2*rect.w}px,${rect.y+(1-p.y)/2*rect.h}px) translate(-50%,-100%)`}
 function overlays(rects){poolUsed=new Set();
   if(view==="AIR"||view==="T"){const sp=id=>{const s=SEATS[id];return new THREE.Vector3(seatX(s.letter),1.25,backZ[s.row]-0.2)};
-    if(view==="AIR"){recs.forEach((r,i)=>{if(!r.includes(selected))label("r"+r[0],"optn",`Option ${i+1} · ${r.join("+")}`,sp(r[0]),camera,rects[0],()=>ui.select(r[0]))});
+    if(view==="AIR"){recs.forEach((r,i)=>{if(!r.includes(selected))label("r"+r[0],"optn",`Option ${i+1} · ${r.length>1?r[0]+"–"+r[r.length-1]:r[0]}`,sp(r[0]),camera,rects[0],()=>ui.select(r[0]))});
       if(hover&&hover!==selected&&!SEATS[hover].taken){const s=SEATS[hover];label("hover","hover",`${hover} · ${s.price?"£"+s.price:"Free"}`,sp(hover),camera,rects[0])}}
-    if(selGlow>0.05){const s=SEATS[selected],gi=recs.findIndex(r=>r.includes(selected));label("sel","sel",`Selected ${selected} · ${s.price?"£"+s.price:"Free"}${gi>=0?` · option ${gi+1}`:""}`,sp(selected),camera,rects[0],()=>enterSeat(selected))}}
+    if(selGlow>0.05){const s=SEATS[selected],gi=recs.findIndex(r=>r.includes(selected));label("sel","sel",`${selected}${gi>=0?` · option ${gi+1}`:""}`,sp(selected),camera,rects[0],()=>enterSeat(selected))}}
   for(const [i,g] of guideGroups.entries())for(const l of g.userData.labels)label(`g${i}${l.cls}`,"guide "+l.cls,l.t,l.p,camera,rects[0]);
   for(const [k,el] of pool)if(!poolUsed.has(k)){el.remove();pool.delete(k)}
   declutter()}
@@ -613,6 +633,7 @@ function loop(t){requestAnimationFrame(loop);if(document.hidden)return;const dt=
   const w=canvas.clientWidth,h=canvas.clientHeight,key=w+"x"+h;if(key!==lastSize){lastSize=key;renderer.setSize(w,h,false);dirty=true}
   if(anim){anim(t);dirty=true}
   leanGoal=["F","W","L"].includes(view)?leanFor(selected,view):0;if(Math.abs(lean-leanGoal)>0.002){lean+=(leanGoal-lean)*(reduce?1:kk*0.8);dirty=true}else lean=leanGoal;
+  {const wg=view==="W"?1:0;if(Math.abs(wz-wg)>0.002){wz+=(wg-wz)*(reduce?1:kk*0.8);dirty=true}else wz=wg}
   if(view==="AIR"){const k=kk;if(air.target.distanceTo(airGoal.target)>0.002||Math.abs(air.zoom-airGoal.zoom)>0.0005){air.target.lerp(airGoal.target,k);air.zoom+=(airGoal.zoom-air.zoom)*k;dirty=true}}
   const want=view==="AIR"?1:(view==="T"?selGlow:0);if(Math.abs(selLight.intensity-want*9)>0.02){selLight.intensity+=(want*9-selLight.intensity)*kk;dirty=true}
   if(trans){if(!trans.step(t))trans=null;dirty=true}
@@ -621,7 +642,8 @@ function loop(t){requestAnimationFrame(loop);if(document.hidden)return;const dt=
   const rects=[{x:0,y:0,w,h}];
   if(view==="AIR"){sizeCam(camera,w,h,false);const L_=airLayout(w,h);setOffsetXY(camera,w,h,L_.dx,L_.dy);camera.updateProjectionMatrix();const p=airPose();camera.position.copy(p.pos);camera.quaternion.copy(p.quat)}
   else if(view==="T"){sizeCam(camera,w,h,true);const fs=camera.fov,fa=w/h<1?44:28;camera.fov=fa+(fs-fa)*sstep(0,0.75,transW);camera.updateProjectionMatrix();const so=seatOffset(),k=sstep(0,1,transW);setOffsetXY(camera,w,h,airLay.dx+(so.dx-airLay.dx)*k,airLay.dy+(so.dy-airLay.dy)*k)}
-  else{sizeCam(camera,w,h,true);applyOffset(camera,w,h);camera.position.copy(eye).add(leanVec(selected));camera.lookAt(camera.position.clone().add(dirFrom(yaw,pitch)))}
+  else if(view==="R"){sizeCam(camera,w,h,true);applyOffset(camera,w,h);camera.position.copy(FREECAM.pos);camera.quaternion.copy(FREECAM.quat)}
+  else{sizeCam(camera,w,h,true);if(wz>0){camera.fov*=1-0.12*wz;camera.updateProjectionMatrix()}applyOffset(camera,w,h);camera.position.copy(eye).add(leanVec(selected));camera.lookAt(camera.position.clone().add(dirFrom(yaw,pitch)))}
   camera.updateMatrixWorld();
   renderer.clear();renderView(camera);
   PERF.sample(performance.now()-fs0,t);autoQuality();
