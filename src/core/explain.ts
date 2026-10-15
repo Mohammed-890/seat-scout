@@ -14,6 +14,45 @@ export interface Statement { kind: StatementKind; text: string; refs: string[] }
 export interface CardGroup {
   seats: string[]; row: number; totalGBP: number; score: number; components: Record<string, number>;
   statements: Statement[]; strengths: string[]; compromises: string[]; valid: true;
+  /** Plain-language fit to what the passenger asked, built by code from the state and the seat data. */
+  fit: Fit;
+}
+export interface Fit { asked: string[]; met: string[]; missed: string[]; tradeOff: string | null }
+
+const NUM = ["no", "one", "two", "three"];
+/** What the passenger asked for (requirements first), and whether this group meets each item. Hard requirements are always met:
+ *  groups that miss one are never shown. Preferences can be missed, and the miss is stated. */
+export function fitFor(seats: Seat[], row: number, totalGBP: number, s: TripState): Fit {
+  const asked: string[] = [], met: string[] = [], missed: string[] = [];
+  const add = (label: string, ok: boolean) => { asked.push(label); (ok ? met : missed).push(label); };
+  const n = seats.length, win = seats.find((x) => x.position === "window"), aisle = seats.some((x) => x.position === "aisle");
+  if (s.hard.position) add(`${s.hard.position === "window" ? "a window" : s.hard.position === "aisle" ? "an aisle" : "a middle"} seat`, true);
+  else if (s.prefs.window) add("a window if possible", !!win);
+  if (s.budget.totalGBP != null) add(n > 1 ? `£${s.budget.totalGBP} or less in total` : `£${s.budget.totalGBP} or less`, totalGBP <= s.budget.totalGBP);
+  if (s.budget.perSeatGBP != null) add(`£${s.budget.perSeatGBP} or less a seat`, seats.every((x) => x.priceGBP <= s.budget.perSeatGBP!));
+  if (n > 1 && s.together) add("sitting together", true);
+  if (s.prefs.aisle && s.hard.position !== "aisle") add("easy access to the aisle", aisle);
+  if (s.prefs.clearView) add("a view away from the wing", win?.windowView === "clear");
+  if (s.prefs.legroom) add("more space", seats[0].pitchIn > 29);
+  if (s.prefs.quiet) add("a quieter zone", seats[0].noiseEstimate === "quiet");
+  if (s.prefs.front) add("a seat near the front", row <= 10);
+  if (s.hard.fullRecline) add("full recline", true);
+  if (s.hard.exitRowOnly) add("an exit row", true);
+  if (s.hard.avoidToilets) add("a seat away from the toilets", true);
+  if (s.hard.underSeatBag) add("space for a bag under the seat", true);
+  // One trade-off: a missed preference first, then the most noticeable downside of the seat itself.
+  const pass = n === 1 ? seats[0].seatsToPassForAisle : 0;
+  const t = [
+    ...missed.map((m) => `it doesn't give you ${m.replace(/ if possible$/, "")}`),
+    pass ? `passing ${NUM[pass]} seat${pass > 1 ? "s" : ""} to reach the aisle` : "",
+    seats[0].recline === "limited" ? "limited recline" : "",
+    seats[0].nearToilets ? "being next to the rear toilets" : "",
+    n === 1 && !win && seats[0].position === "aisle" ? "no window" : "",
+    seats[0].noiseEstimate !== "quiet" ? `a busier zone (estimate: ${seats[0].noiseEstimate.replace("_", " ")})` : "",
+    win && win.windowView !== "clear" ? "a window view partly onto the wing" : "",
+    win?.windowAlignment === "between_windows" ? "the window sits between seats (estimate)" : "",
+  ].filter(Boolean);
+  return { asked, met, missed, tradeOff: t[0] ?? null };
 }
 
 const ALIGN: Record<string, string> = { beside: "lines up with the seat", slightly_ahead: "slightly ahead of the seat", slightly_behind: "slightly behind the seat", between_windows: "falls between two windows" };
@@ -49,5 +88,5 @@ export function explainGroup(c: ScoredCandidate, s: TripState, ds: Dataset): Car
   if (seats[0].noiseEstimate !== "quiet") compromises.push(`noisier zone (estimate: ${seats[0].noiseEstimate.replace("_", " ")})`);
   if (win?.windowAlignment === "between_windows") compromises.push("window is between seats, not beside the window seat (estimate)");
   if (seats.length === 1 && seats[0].position === "middle") compromises.push("middle seat");
-  return { seats: c.seats, row: c.row, totalGBP: c.totalGBP, score: c.score, components: c.components, statements: st, strengths, compromises, valid: true };
+  return { seats: c.seats, row: c.row, totalGBP: c.totalGBP, score: c.score, components: c.components, statements: st, strengths, compromises, valid: true, fit: fitFor(seats, c.row, c.totalGBP, s) };
 }

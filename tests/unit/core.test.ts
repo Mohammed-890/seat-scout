@@ -158,3 +158,25 @@ test("parser: 'I care more about getting out easily' raises aisle weight and rel
   assert.equal(p.prefs?.aisle, 2);
   assert.equal(p.hard?.position, null);
 });
+
+test("parser: the three preference shortcuts map to preferences, never to requirements", () => {
+  const s0 = initialState();
+  const sleep = parseMessage("I want to sleep.", s0).patch;
+  assert.equal(sleep.prefs?.quiet, 1); assert.equal(sleep.prefs?.window, 1); assert.equal(sleep.hard?.position, undefined);
+  assert.equal(parseMessage("I need more space.", s0).patch.prefs?.legroom, 1);
+  const leave = parseMessage("I want to leave quickly.", s0).patch;
+  assert.equal(leave.prefs?.aisle, 2); assert.equal(leave.prefs?.front, 1);
+});
+
+test("fit summary: states what was asked, keeps requirements met, and names one trade-off", async () => {
+  const { explainGroup } = await import("../../src/core/explain.js");
+  const st = applyPatch(initialState(), parseMessage("Just me, window seat, £15 or less", initialState()).patch).state;
+  const res = recommend(st, ctxFor());
+  assert.equal(res.status, "ok");
+  const fit = explainGroup(res.ranked[0], st, ds).fit;
+  assert.ok(fit.asked.includes("a window seat"));
+  assert.ok(fit.asked.some((a) => a.startsWith("£15 or less")));
+  assert.deepEqual(fit.missed, []);
+  // a window seat for one traveller always means passing seats to reach the aisle
+  assert.match(fit.tradeOff ?? "", /passing (one|two) seats? to reach the aisle/);
+});
