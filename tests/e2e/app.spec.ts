@@ -10,9 +10,11 @@ const local = async (page: Page) => {
 };
 test.beforeEach(async ({ page }) => { await local(page); });
 const errorsOf = (page: Page) => { const errs: string[] = []; page.on("pageerror", (e) => errs.push(String(e))); return errs; };
-async function open(browser: Browser, opts: { w?: number; h?: number; mobile?: boolean; qs?: string } = {}) {
+async function open(browser: Browser, opts: { w?: number; h?: number; mobile?: boolean; qs?: string; noThree?: boolean } = {}) {
   const ctx = await browser.newContext({ viewport: { width: opts.w ?? 1280, height: opts.h ?? 800 }, isMobile: !!opts.mobile, hasTouch: !!opts.mobile, reducedMotion: "reduce" });
-  const page = await ctx.newPage(); await local(page); const errs = errorsOf(page);
+  const page = await ctx.newPage(); const errs = errorsOf(page);
+  if (opts.noThree) { await page.route("https://cdn.jsdelivr.net/**", (r) => r.abort("failed")); await page.route("https://fonts.googleapis.com/**", (r) => r.fulfill({ body: "", contentType: "text/css" })); }
+  else await local(page);
   await page.goto("http://127.0.0.1:8790/" + (opts.qs ?? "")); await expect(page.locator("#loading")).toHaveClass(/done/);
   return { ctx, page, errs };
 }
@@ -32,59 +34,74 @@ async function recovery(page: Page, id: string) {
 }
 const FAMILY = "We're two adults travelling with a five-year-old. Our total seat budget is £45. We want to sit together, and I'd prefer a window away from the wing.";
 
-test("assistant: known failures, family seating, budget change, outdated cards, recovery, selection", async ({ page }) => {
+test("adviser: preference shortcut, impossible requests, family seating, preference change, recovery, selection", async ({ page }) => {
   const errs = errorsOf(page);
   await page.goto("/"); await expect(page.locator("#loading")).toHaveClass(/done/);
-  await expect(page.locator("#modeText")).toContainText("rule-based mode, no AI model connected");
-  // the two previously failing evaluation cases: a named window seat is a requirement
-  await expect(await ask(page, "1 adult, window, total £2")).toContainText("Nothing in the current snapshot satisfies all of");
-  await expect(page.locator(".msg.bot").last().locator(".best")).toHaveCount(0);
+  await expect(page.locator("#modeText")).toContainText("Rule-based demo: no AI model connected");
+  await expect(page.getByRole("heading", { name: "Tell us what makes a good seat for you." })).toBeVisible();
+  // a preference shortcut: specific explanation built from the structured fit
+  await page.getByRole("button", { name: "I want to sleep." }).click();
+  const sleep = page.locator(".msg.bot").first();
+  await expect(sleep.locator(".best .ask")).toHaveText("You asked for a window if possible and a quieter zone.");
+  await expect(sleep.locator(".best .match")).toContainText("This seat matches both.");
+  await expect(sleep.locator(".best .match")).toContainText("The trade-off is");
+  // the two previously failing evaluation cases end in an explained no-match that asks before relaxing anything
+  const none = await ask(page, "1 adult, window, total £2");
+  await expect(none.locator(".nofit")).toContainText("No seat in this sample matches all of your requirements.");
+  await expect(none.locator(".nofit")).toContainText("must include a window seat");
+  await expect(none.locator(".nofit li").first()).toContainText("raise the total budget");
+  await expect(none.locator(".nofit")).toContainText("Which would you like to change?");
   await expect(await ask(page, "لوحدي، مقعد شباك، ميزانية ٣ جنيه")).toContainText("must include a window seat");
-  // family: one best recommendation, three adjacent seats, total and per-seat prices, alternatives folded away
+  // family: one best recommendation for three adjacent seats, what was asked, total and per-seat prices, details folded
   const fam = await ask(page, FAMILY);
   const best = fam.locator(".best");
   await expect(best).toHaveCount(1);
-  await expect(best.locator(".reqs")).toContainText("2 adults, 1 child");
-  await expect(best.locator(".reqs")).toContainText("no exit rows with children");
+  await expect(best.locator(".party")).toHaveText("2 adults, 1 child");
+  await expect(best.locator(".ask")).toContainText("£45 or less in total");
+  await expect(best.locator(".ask")).toContainText("sitting together");
   await expect(best.locator(".best-h")).toContainText("total");
-  await expect(best.getByRole("button", { name: "View seat" })).toBeVisible();
   for (const d of await best.locator("details").all()) expect(await d.getAttribute("open")).toBeNull();
+  await best.getByText("Why this seat?").click();
+  await expect(best.locator("details").first()).toContainText("not a comfort rating");
   const recs1 = (await page.evaluate("recs")) as string[][];
   for (const g of recs1) expect(g.length).toBe(3);
   expect(await page.locator("#cId").textContent()).toBe(recs1[0][0]);
-  // budget change: only that field changes; the earlier card is marked outdated and can no longer be selected
-  await expect(await ask(page, "Actually, £25 maximum.")).toContainText("£25");
+  // preference change: only the budget changes, other requirements are kept, the earlier card is marked outdated
+  const cheaper = await ask(page, "Actually, £25 maximum.");
   const st = (await page.evaluate("lastResult.state")) as any;
-  expect(st.budget.totalGBP).toBe(25); expect(st.prefs.window).toBe(1); expect(st.travellers.length).toBe(3);
+  expect(st.budget.totalGBP).toBe(25); expect(st.prefs.window).toBe(1); expect(st.travellers.length).toBe(3); expect(st.together).toBe(true);
+  await expect(cheaper.locator(".ask")).toContainText("£25 or less in total");
+  await expect(cheaper.locator(".ask")).toContainText("sitting together");
   await expect(best).toHaveClass(/outdated/);
   await expect(best.locator(".flag")).toContainText("Outdated");
   await expect(best.getByRole("button", { name: "Select (demo)" })).toBeDisabled();
   await expect(await ask(page, "Why not row 6?")).toContainText(/row 6/i);
-  await expect(await ask(page, "I care more about getting out easily.")).not.toContainText("Something went wrong");
+  await ask(page, "I care more about getting out easily.");
   expect(((await page.evaluate("lastResult.state")) as any).prefs.aisle).toBe(2);
   // the trace lives in About, not in the main panel
   await page.click("#aboutBtn"); await page.click('.ab nav [data-x="trace"]');
   await expect(page.locator("#abBody")).toContainText("findAdjacentSeatGroups");
   await expect(page.locator("#abBody")).toContainText("Final validation");
   await page.click("#abClose");
-  // availability change: a recommended seat is taken and the recommendation is revalidated
+  // availability change: a recommended seat is taken, the card says so and the pick changes
   const top = ((await page.evaluate("recs")) as string[][])[0];
   await recovery(page, "rTaken");
-  await expect(page.locator(".msg.bot").last()).toContainText(/availability snapshot v2/);
+  await expect(page.locator(".msg.bot").last()).toContainText(/was just taken \(availability snapshot v2\)/);
   expect(((await page.evaluate("recs")) as string[][]).flat()).not.toContain(top[0]);
-  // a tool timeout is recovered from, and the trace shows it
   await recovery(page, "rTimeout");
   const tr = (await page.evaluate("lastResult.trace.map(e=>e.kind)")) as string[];
   expect(tr).toContain("tool_error"); expect(tr).toContain("final");
-  // impossible request
   await recovery(page, "rImpossible");
-  await expect(page.locator(".msg.bot").last()).toContainText("Nothing in the current snapshot");
-  // selection is revalidated by the server and nothing is booked
-  await expect(await ask(page, "Make the total budget £45.")).not.toContainText("Something went wrong");
+  await expect(page.locator(".msg.bot").last().locator(".nofit")).toBeVisible();
+  // selection is revalidated by the server, confirmed as a demo, and can be changed
+  await ask(page, "Make the total budget £45.");
   const pick = ((await page.evaluate("recs")) as string[][])[0];
   await page.locator(".msg.bot .best:not(.outdated)").last().getByRole("button", { name: "Select (demo)" }).click();
   await expect(page.locator(".msg.bot").last()).toContainText(/nothing has been booked/i);
   await expect(page.locator("#cMine")).toContainText(pick.join(" + "));
+  await expect(page.locator("#cMine")).toContainText("Nothing has been booked");
+  await page.locator("#cMine").getByRole("button", { name: "Change" }).click();
+  await expect(page.locator("#cMine")).toBeHidden();
   expect(errs).toEqual([]);
 });
 
@@ -115,40 +132,65 @@ test("camera interruption: going back mid-transition never leaves controls disab
   await page.locator("#skip").click({ timeout: 20_000 }).catch(() => {}); // the transition may already have finished
   await expect.poll(() => page.evaluate("view"), { timeout: 240_000 }).toBe("F");
   await expect(page.locator('.views button[data-v="AIR"]')).toBeEnabled();
+  await expect(page.locator("#resetView")).toBeEnabled();
   expect(errs).toEqual([]);
 });
 
-test("seat selection, views and key details; no characters or playground remain", async ({ browser }) => {
+test("seat selection, camera presets, reset view, seat details, explore drawer and comparison", async ({ browser }) => {
   const { ctx, page, errs } = await open(browser);
-  expect(await page.evaluate("[typeof PEOPLE, typeof RIG, typeof setPlayground, typeof startExitDemo]")).toEqual(["undefined", "undefined", "undefined", "undefined"]);
-  await expect(page.locator("#ctrlBar, #playPanel, #exitPanel, #sceneBtn")).toHaveCount(0);
-  // choose a window seat from the seat map
+  expect(await page.evaluate("[typeof PEOPLE, typeof setPlayground, typeof startExitDemo]")).toEqual(["undefined", "undefined", "undefined"]);
+  // manual browsing: choose a window seat from the seat chart
   await page.click('.tabs [data-t="m"]'); await page.click('#plan button[data-id="14A"]');
   await expect(page.locator("#cId")).toHaveText("14A");
-  await expect(page.locator("#cFacts")).toContainText("Seat pitch");
-  await expect(page.locator("#cFacts")).toContainText(/\d+ in \/ \d+ cm/);
-  await expect(page.locator("#cFacts")).toContainText("You would pass two seats to reach the aisle.");
-  await expect(page.locator("#cPrice")).toHaveText(/£\d+|Free/);
-  // views: from the seat, the window and legroom
+  await expect(page.locator("#cPos")).toHaveText("Window seat, row 14");
+  await expect(page.locator("#cPoints li.pro")).toHaveCount(2);
+  await expect(page.locator("#cPoints li.con")).toHaveText("Pass two seats to reach the aisle");
+  // measurements stay behind Seat details; pitch is distinguished from usable knee space
+  await expect(page.locator("#cFacts")).toBeHidden();
+  await page.click("#dDetails summary");
+  await expect(page.locator("#cFacts")).toContainText("29″ (74 cm)");
+  await expect(page.locator("#cFacts")).toContainText("Row spacing, not the room your knees get");
+  await expect(page.locator("#cFacts")).toContainText("Modelled estimate");
+  // camera presets
   for (const v of ["F", "W", "L"]) {
     await page.click(`.views button[data-v="${v}"]`);
     await expect.poll(() => page.evaluate("view"), { timeout: 120_000 }).toBe(v);
     await expect(page.locator(`.views button[data-v="${v}"]`)).toHaveAttribute("aria-pressed", "true");
   }
-  await expect(page.locator("#space")).toBeVisible();
-  await expect(page.locator("#spaceSum")).toContainText("estimate");
+  // reset view restores the preset's angle after looking around
+  await page.click('.views button[data-v="W"]');
+  expect(await page.evaluate("yaw+=0.6;pitch-=0.2;resetView();Math.abs(yaw-viewAngles(selected,'W').y)<1e-6&&Math.abs(pitch-viewAngles(selected,'W').p)<1e-6")).toBe(true);
+  // explore this seat: shade, tray, reading light, recline preview
+  await page.click("#dExplore summary");
+  for (const k of ["tray", "light", "shade"]) { await page.click(`#exploreBody [data-k="${k}"]`); }
+  expect(await page.evaluate("EXPLORE.state().st")).toEqual({ shade: "down", tray: true, light: true });
+  await expect(page.locator('#exploreBody [data-k="tray"]')).toHaveAttribute("aria-pressed", "true");
+  await page.click('#exploreBody [data-k="recline"]');
+  await expect.poll(() => page.evaluate("view")).toBe("R");
+  await expect(page.locator("#exploreBody")).toContainText("Space at knee height");
+  await page.click("#reclDone");
+  await expect.poll(() => page.evaluate("view")).toBe("W");
+  // a bulkhead seat has no seat-back tray; an aisle seat has no shade within reach
+  await page.evaluate("enterSeat('1C','F')");
+  await expect(page.locator('#exploreBody [data-k="tray"]')).toBeDisabled();
+  await expect(page.locator('#exploreBody [data-k="shade"]')).toBeDisabled();
+  // back to the seat map; reset frames the selected seat again
   await page.click('.views button[data-v="AIR"]');
-  await expect.poll(() => page.evaluate("view"), { timeout: 120_000 }).toBe("AIR");
-  await expect(page.locator("#space")).toBeHidden();
-  // an aisle seat is direct; a taken seat cannot be chosen
-  await page.click('#plan button[data-id="17C"]');
-  await expect(page.locator("#cFacts")).toContainText("Direct: this is an aisle seat.");
+  await expect.poll(() => page.evaluate("view")).toBe("AIR");
+  expect(await page.evaluate("air.az=0.4;resetView();air.az")).toBe(-0.95);
+  // taken seats can't be chosen
   const taken = await page.evaluate("Object.values(SEATS).find(s=>s.taken).id");
   await expect(page.locator(`#plan button[data-id="${taken}"]`)).toBeDisabled();
-  // comparison stays a small secondary table
-  await page.click("#cCompare"); await page.evaluate("ui.select('14A')");
+  // comparison of two seats: price difference, access, and choosing a column updates the preview
+  await page.click('#plan button[data-id="17C"]');
+  await page.click("#cCompare"); await page.click('#plan button[data-id="14A"]');
   await expect(page.locator("#cmp table")).toContainText("17C");
   await expect(page.locator("#cmp table")).toContainText("14A");
+  await expect(page.locator("#cmp table")).toContainText("Recline");
+  await expect(page.locator("#cmp .key")).toContainText(/£|Same sample price/);
+  await page.locator("#cmp th button", { hasText: "14A" }).click();
+  await expect(page.locator("#cId")).toHaveText("14A");
+  await expect(page.locator("#cmp")).toBeVisible();
   // reduced motion: scenery does not drift
   await page.evaluate("loadModule('scenery')");
   expect(await page.evaluate("typeof SKY !== 'undefined' ? SKY.motion : false")).toBe(false);
@@ -156,18 +198,21 @@ test("seat selection, views and key details; no characters or playground remain"
   await ctx.close();
 });
 
-test("mobile: compact bottom sheet that expands for the assistant, no overlap or overflow", async ({ browser }) => {
+test("mobile: compact sheet with Find my seat, expands for the adviser, no overlap or overflow", async ({ browser }) => {
   const { ctx, page, errs } = await open(browser, { w: 390, h: 844, mobile: true });
   await expect(page.locator("#panel")).toHaveClass(/compact/);
   const sheet = await page.locator("#panel").boundingBox();
   expect(sheet!.height).toBeLessThan(844 * 0.45);
-  const about = await page.locator("#aboutBtn").boundingBox(), views = await page.locator(".views").boundingBox();
-  expect(about!.y + about!.height <= views!.y || views!.x >= about!.x + about!.width).toBe(true);
-  expect(await page.evaluate("document.documentElement.scrollWidth <= innerWidth")).toBe(true);
+  const ident = await page.locator(".ident").boundingBox(), presets = await page.locator(".presets").boundingBox(), about = await page.locator("#aboutBtn").boundingBox();
+  expect(ident!.y + ident!.height <= presets!.y).toBe(true);
+  expect(about!.y + about!.height <= presets!.y).toBe(true);
+  expect(presets!.y + presets!.height <= sheet!.y).toBe(true);
+  for (const b of await page.locator("#cBtns button:visible").all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(40);
+  await page.click("#cFind");
+  await expect(page.locator("#panel")).not.toHaveClass(/compact/);
+  await expect(page.getByRole("button", { name: "I need more space." })).toBeVisible();
   const r = await ask(page, "2 adults, total £20, together");
   await expect(r.locator(".best")).toHaveCount(1);
-  await expect(page.locator("#panel")).not.toHaveClass(/compact/);
-  // "View seat" returns to the compact sheet so the view is visible
   await r.locator(".best").getByRole("button", { name: "View seat" }).click();
   await expect(page.locator("#panel")).toHaveClass(/compact/);
   expect(await page.evaluate("document.documentElement.scrollWidth <= innerWidth")).toBe(true);
@@ -175,9 +220,9 @@ test("mobile: compact bottom sheet that expands for the assistant, no overlap or
   await ctx.close();
 });
 
-test("rendering fallback without WebGL on mobile: seat map and assistant still work", async ({ browser }) => {
+test("without WebGL: 2D chart and adviser still work on mobile", async ({ browser }) => {
   const { ctx, page, errs } = await open(browser, { w: 390, h: 844, mobile: true, qs: "?no3d" });
-  await expect(page.locator(".flat-note")).toBeVisible();
+  await expect(page.locator(".flat-note")).toContainText("isn't available on this device");
   await expect(page.locator("#plan button[data-id]").first()).toBeAttached();
   const r = await ask(page, "2 adults, total £20, together");
   await expect(r.locator(".best").first()).toBeAttached();
@@ -185,6 +230,18 @@ test("rendering fallback without WebGL on mobile: seat map and assistant still w
   await page.focus("#q");
   const box = await page.locator("#q").boundingBox();
   expect(box && box.y + box.height <= 844).toBe(true);
+  expect(errs).toEqual([]);
+  await ctx.close();
+});
+
+test("loading failure: if the 3D library can't load, the 2D fallback takes over", async ({ browser }) => {
+  const { ctx, page, errs } = await open(browser, { noThree: true });
+  await expect(page.locator(".flat-note")).toContainText("couldn't load");
+  await expect(page.locator(".presets")).toBeHidden();
+  await page.click('.tabs [data-t="m"]'); await page.click('#plan button[data-id="17C"]');
+  await expect(page.locator("#cId")).toHaveText("17C");
+  const r = await ask(page, "I want to leave quickly.");
+  await expect(r.locator(".best .ask")).toContainText("easy access to the aisle");
   expect(errs).toEqual([]);
   await ctx.close();
 });

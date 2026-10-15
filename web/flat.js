@@ -6,7 +6,7 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let selGlow = 0, view = "AIR", selected = "14A", recs = [], focus = { seats: [], tone: null }, trans = null, dirty = false;
 const ZC = 0, air = { zoom: 1, target: { set() {}, copy() {} } }, airGoal = { zoom: 1, target: { set() {}, copy() {} } };
 const note = document.createElement("div"); note.className = "flat-note";
-note.innerHTML = "<div><b>3D view unavailable on this device.</b><br>Seat details, the seat map and the assistant still work with the same data.</div>";
+note.innerHTML = `<div><b>${typeof THREE === "undefined" && !/no3d/.test(location.search) ? "The 3D cabin preview couldn't load." : "The 3D cabin preview isn't available on this device."}</b><br>Seat details, the seat chart and the adviser still work with the same data.</div>`;
 document.getElementById("viewer").append(note);
 document.querySelector(".presets").hidden = true;
 const flatToast = (t) => typeof ui !== "undefined" && ui.toast(t);

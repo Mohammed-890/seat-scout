@@ -3,7 +3,7 @@
 ```mermaid
 flowchart LR
   subgraph Browser["Browser (no keys, no model calls)"]
-    UI["3D cabin + seat map<br/>assistant chat<br/>About: trace + evaluation"]
+    UI["3D cabin + seat chart<br/>adviser chat<br/>About: trace + evaluation"]
   end
   subgraph Server["Node server: trust boundary"]
     API["HTTP API<br/>HttpOnly session cookie<br/>zod-validated bodies, rate limit"]
@@ -59,10 +59,14 @@ Before the parser fix, parsed-constraint satisfaction was 101/101 while actual-r
 | Deployment | Hosted artifact page | Not deployed by this project; runs locally |
 
 ## Front end
-- `web/cabin3d.js`: aircraft and cabin (instanced seats, lofted airfoil wings and tail, lathe-turned engines, cutaway with frame stubs), camera path between the aircraft and the seat, the forward/window/legroom views, framing that fits the aircraft into the area beside the panel.
+- `web/cabin3d.js`: aircraft and cabin (instanced seats, lofted airfoil wings and tail, lathe-turned engines, cutaway with frame stubs), the camera path between the seat map and the seat, the Seated / Window / Legroom presets and Reset view, framing that fits the aircraft beside the panel, and a seat-part registry so one seat's back and the tray ahead can move.
+- `web/explore.js`: "Explore this seat": window shade, tray table, reading light and the recline preview, which measures the modelled change in knee space behind.
 - `web/scenery.js` (loaded after the first frame): sky dome, procedural cloud layers and ground for one daytime preset that also drives the cabin lighting. Separate render pass with its own far plane.
-- `web/ui.js`: seat panel, seat map, assistant and the About dialog (trace, evaluation, recovery demos, limitations).
-- `web/flat.js`: fallback when WebGL is unavailable (seat map and assistant still work).
+- `web/ui.js`: the seat pass (two advantages and one trade-off from the seat data, Seat details), the adviser, the two-seat comparison, the seat chart and the About dialog.
+- `web/flat.js`: fallback when WebGL is unavailable or the 3D library fails to load (seat chart and adviser still work).
+
+## Fit summary
+`src/core/explain.ts` builds a `fit` object for every card: what the passenger asked for (requirements first, then preferences), which of those the group meets, which it misses, and one trade-off. The interface turns it into "You asked for … This seat matches both. The trade-off is …". It is computed from the trip state and the seat data in both modes, so a live model's wording can't change it.
 
 ## Preview deployment (claude.ai artifact)
 The single-file preview bundles the same core, tools and UI into the page. When the viewer allows it, Claude is reached through the artifact `sample` capability **on the viewer's own claude.ai account**: there is still no key in the page, and tools run in the page with the same validation. Token counts aren't exposed there, so the trace shows latency only. Otherwise the preview uses the deterministic planner and says so.

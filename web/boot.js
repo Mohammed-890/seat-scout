@@ -21,7 +21,8 @@
   }));
   // 3D failure fallback: if WebGL can't start, the 2D seat map and assistant still work.
   const gl = (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })();
-  window.NO3D = !gl || /[?&]no3d\b/.test(location.search);
+  // three.js comes from a CDN; if it failed to load, use the 2D fallback rather than a broken canvas
+  window.NO3D = !gl || typeof window.THREE === "undefined" || /[?&]no3d\b/.test(location.search);
   try {
     if (window.NO3D) await window.loadModule("flat");
     else { await window.loadModule("cabin3d"); await window.loadModule("explore"); }
