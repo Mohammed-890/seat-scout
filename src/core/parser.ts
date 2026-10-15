@@ -115,7 +115,7 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
     if (!positionIsSoft(AISLE)) { patch.hard = { ...(patch.hard ?? {}), position: "aisle" }; notes.push("Aisle treated as a requirement (stated without a softening word)."); }
     patch.prefs = { ...(patch.prefs ?? {}), aisle: 1 };
   }
-  if (has(/get(ting)? out (easily|easy|quickly)|easy (to get out|access to the aisle|aisle access)|easier to get out|climb over|not (have to|want to) (climb|squeeze)|سهولة الخروج|اطلع بسهولة|أطلع بسهولة/)) {
+  if (has(/leave (quickly|fast|first|easily)|get off (the plane )?(fast|quickly|first)|off the plane (quickly|fast|first)|get(ting)? out (easily|easy|quickly)|easy (to get out|access to the aisle|aisle access)|easier to get out|climb over|not (have to|want to) (climb|squeeze)|سهولة الخروج|اطلع بسهولة|أطلع بسهولة/)) {
     patch.prefs = { ...(patch.prefs ?? {}), aisle: 2 };
     if (state.hard.position === "window") { patch.hard = { ...(patch.hard ?? {}), position: null }; notes.push("Easier aisle access now outranks the window: the window is kept as a preference, not a requirement."); }
   }
@@ -126,12 +126,14 @@ export function parseMessage(text: string, state: TripState, ctx: { topTotalGBP?
     patch.prefs = { ...(patch.prefs ?? {}), clearView: 1, window: Math.max(1, patch.prefs?.window ?? state.prefs.window) };
     if (strong && !soft) patch.hard = { ...(patch.hard ?? {}), clearViewRequired: true };
   }
-  if (has(/legroom|leg room|tall|long legs|knee|مساحة للأرجل|طويل/)) patch.prefs = { ...(patch.prefs ?? {}), legroom: 1 };
+  if (has(/legroom|leg room|more (space|room)|extra (space|room)|room to stretch|stretch out|tall|long legs|knee|مساحة للأرجل|مساحة أكبر|طويل/)) patch.prefs = { ...(patch.prefs ?? {}), legroom: 1 };
   const hcm = q.match(/(1[4-9]\d|2[0-2]\d) ?cm/), hft = q.match(/(\d) ?(?:'|ft|foot|feet) ?(\d{1,2})?/);
   if (hcm) patch.heightCm = Number(hcm[1]); else if (hft && Number(hft[1]) >= 4 && Number(hft[1]) <= 7) patch.heightCm = Math.round((Number(hft[1]) * 12 + Number(hft[2] ?? 0)) * 2.54);
   if (patch.heightCm && patch.heightCm >= 185) patch.prefs = { ...(patch.prefs ?? {}), legroom: 1 };
   if (has(/quiet|noise|calm|sleep|هادئ|هدوء|نوم/)) patch.prefs = { ...(patch.prefs ?? {}), quiet: 1 };
-  if (has(/get off (fast|quickly)|tight connection|near the front|at the front|قريب من المقدمة/)) patch.prefs = { ...(patch.prefs ?? {}), front: 1 };
+  // Sleeping: a window seat lets you lean on the wall and isn't disturbed by neighbours getting out (a preference, never a requirement).
+  if (has(/\bsleep|nap|rest\b|نوم|أنام|انام/) && !aisle && !has(/not (a |the )?window|no window/)) patch.prefs = { ...(patch.prefs ?? {}), window: Math.max(1, patch.prefs?.window ?? 0) };
+  if (has(/get off (the plane )?(fast|quickly|first)|leave (quickly|fast|first)|off the plane (quickly|fast|first)|tight connection|near the front|at the front|قريب من المقدمة/)) patch.prefs = { ...(patch.prefs ?? {}), front: 1 };
   if (has(/front (of the|section)|front cabin/) && strong) patch.hard = { ...(patch.hard ?? {}), zone: "front" };
   if (has(/cheap|budget|save money|cheapest|رخيص/)) patch.prefs = { ...(patch.prefs ?? {}), cheap: Math.max(1, patch.prefs?.cheap ?? 0) };
   if (has(/exit row|مخرج الطوارئ|صف الطوارئ/) && !has(/no exit|not (an |the )?exit|avoid (the )?exit/)) patch.hard = { ...(patch.hard ?? {}), exitRowOnly: true };

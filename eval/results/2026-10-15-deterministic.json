@@ -1,0 +1,920 @@
+{
+ "suiteVersion": "1+requires",
+ "startedAt": "2026-10-15T09:03:01.724Z",
+ "node": "v22.22.0",
+ "dataConfig": "seat-scout-demo-a320neo-v1",
+ "policy": "demo-policy-v1",
+ "cases": 47,
+ "mode": "deterministic",
+ "description": "Rule-based parser + deterministic tools (the app's no-model mode) vs a naive baseline using the same parser without the constraint engine. No model involved.",
+ "systems": [
+  {
+   "system": "tool-grounded deterministic pipeline",
+   "cases": 47,
+   "passed": 47,
+   "metrics": {
+    "casePassRatePct": 100,
+    "hardConstraintSatisfactionPct": 100,
+    "validSeatAndAvailabilityPct": 100,
+    "adjacencyAndPriceCorrectPct": 100,
+    "impossibleHandledPct": 100,
+    "outcomeCorrectPct": 100,
+    "multiTurnStatePct": 100,
+    "preferenceHitPct": 100,
+    "unsupportedNumericClaims": 0,
+    "latencyMsP50": 4,
+    "latencyMsP95": 14,
+    "inputTokens": 0,
+    "outputTokens": 0
+   },
+   "fractions": {
+    "casesPassed": {
+     "num": 47,
+     "den": 47,
+     "pct": 100,
+     "unit": "cases"
+    },
+    "requestUnderstanding": {
+     "num": 27,
+     "den": 27,
+     "pct": 100,
+     "unit": "stated requirements present in the structured state"
+    },
+    "requestUnderstandingCases": {
+     "num": 12,
+     "den": 12,
+     "pct": 100,
+     "unit": "cases with every stated requirement encoded"
+    },
+    "parsedConstraintSatisfaction": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups meeting the parsed constraints"
+    },
+    "actualRequirementSatisfaction": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups meeting what the passenger asked for"
+    },
+    "impossibleRecognised": {
+     "num": 6,
+     "den": 6,
+     "pct": 100,
+     "unit": "impossible cases answered with no seats and an explanation"
+    },
+    "outcomeCorrect": {
+     "num": 47,
+     "den": 47,
+     "pct": 100,
+     "unit": "cases"
+    },
+    "validSeatRefs": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups"
+    },
+    "adjacencyAndPrice": {
+     "num": 95,
+     "den": 95,
+     "pct": 100,
+     "unit": "shown seat groups"
+    },
+    "multiTurnState": {
+     "num": 16,
+     "den": 16,
+     "pct": 100,
+     "unit": "checked state fields"
+    },
+    "preferenceHits": {
+     "num": 6,
+     "den": 6,
+     "pct": 100,
+     "unit": "preference checks"
+    }
+   },
+   "byCategory": {
+    "strict_budget": {
+     "pass": 6,
+     "total": 6
+    },
+    "adjacent_group": {
+     "pass": 5,
+     "total": 5
+    },
+    "window_aisle": {
+     "pass": 5,
+     "total": 5
+    },
+    "unavailable_seat": {
+     "pass": 3,
+     "total": 3
+    },
+    "no_feasible": {
+     "pass": 5,
+     "total": 5
+    },
+    "multi_turn": {
+     "pass": 7,
+     "total": 7
+    },
+    "ambiguous": {
+     "pass": 4,
+     "total": 4
+    },
+    "eligibility": {
+     "pass": 4,
+     "total": 4
+    },
+    "arabic": {
+     "pass": 4,
+     "total": 4
+    },
+    "override_attempt": {
+     "pass": 4,
+     "total": 4
+    }
+   },
+   "failures": []
+  },
+  {
+   "system": "naive baseline (same parser, no constraint engine)",
+   "cases": 47,
+   "passed": 9,
+   "metrics": {
+    "casePassRatePct": 19.1,
+    "hardConstraintSatisfactionPct": 27.7,
+    "validSeatAndAvailabilityPct": 100,
+    "adjacencyAndPriceCorrectPct": 36.2,
+    "impossibleHandledPct": 0,
+    "outcomeCorrectPct": 70.2,
+    "multiTurnStatePct": 100,
+    "preferenceHitPct": 66.7,
+    "unsupportedNumericClaims": 0,
+    "latencyMsP50": 1,
+    "latencyMsP95": 2,
+    "inputTokens": 0,
+    "outputTokens": 0
+   },
+   "fractions": {
+    "casesPassed": {
+     "num": 9,
+     "den": 47,
+     "pct": 19.1,
+     "unit": "cases"
+    },
+    "requestUnderstanding": {
+     "num": 27,
+     "den": 27,
+     "pct": 100,
+     "unit": "stated requirements present in the structured state"
+    },
+    "requestUnderstandingCases": {
+     "num": 12,
+     "den": 12,
+     "pct": 100,
+     "unit": "cases with every stated requirement encoded"
+    },
+    "parsedConstraintSatisfaction": {
+     "num": 13,
+     "den": 47,
+     "pct": 27.7,
+     "unit": "shown seat groups meeting the parsed constraints"
+    },
+    "actualRequirementSatisfaction": {
+     "num": 13,
+     "den": 47,
+     "pct": 27.7,
+     "unit": "shown seat groups meeting what the passenger asked for"
+    },
+    "impossibleRecognised": {
+     "num": 0,
+     "den": 6,
+     "pct": 0,
+     "unit": "impossible cases answered with no seats and an explanation"
+    },
+    "outcomeCorrect": {
+     "num": 33,
+     "den": 47,
+     "pct": 70.2,
+     "unit": "cases"
+    },
+    "validSeatRefs": {
+     "num": 47,
+     "den": 47,
+     "pct": 100,
+     "unit": "shown seat groups"
+    },
+    "adjacencyAndPrice": {
+     "num": 17,
+     "den": 47,
+     "pct": 36.2,
+     "unit": "shown seat groups"
+    },
+    "multiTurnState": {
+     "num": 16,
+     "den": 16,
+     "pct": 100,
+     "unit": "checked state fields"
+    },
+    "preferenceHits": {
+     "num": 4,
+     "den": 6,
+     "pct": 66.7,
+     "unit": "preference checks"
+    }
+   },
+   "byCategory": {
+    "strict_budget": {
+     "pass": 2,
+     "total": 6
+    },
+    "adjacent_group": {
+     "pass": 0,
+     "total": 5
+    },
+    "window_aisle": {
+     "pass": 2,
+     "total": 5
+    },
+    "unavailable_seat": {
+     "pass": 1,
+     "total": 3
+    },
+    "no_feasible": {
+     "pass": 0,
+     "total": 5
+    },
+    "multi_turn": {
+     "pass": 1,
+     "total": 7
+    },
+    "ambiguous": {
+     "pass": 0,
+     "total": 4
+    },
+    "eligibility": {
+     "pass": 1,
+     "total": 4
+    },
+    "arabic": {
+     "pass": 0,
+     "total": 4
+    },
+    "override_attempt": {
+     "pass": 2,
+     "total": 4
+    }
+   },
+   "failures": [
+    {
+     "id": "budget-01",
+     "category": "strict_budget",
+     "problems": [
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "budget-02",
+     "category": "strict_budget",
+     "problems": [
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "budget-04",
+     "category": "strict_budget",
+     "problems": [
+      "17A+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E: invalid group"
+     ],
+     "message": "Seats 17A, 17E."
+    },
+    {
+     "id": "budget-06",
+     "category": "strict_budget",
+     "problems": [
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "adj-01",
+     "category": "adjacent_group",
+     "problems": [
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "adj-02",
+     "category": "adjacent_group",
+     "problems": [
+      "17C+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17C+17E: invalid group"
+     ],
+     "message": "Seats 17C, 17E."
+    },
+    {
+     "id": "adj-03",
+     "category": "adjacent_group",
+     "problems": [
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "adj-04",
+     "category": "adjacent_group",
+     "problems": [
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "adj-05",
+     "category": "adjacent_group",
+     "problems": [
+      "outcome recommend, expected clarify|no_feasible|info",
+      "showed 1 group(s) where none should be shown",
+      "17E+18B+18E+19B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E+19B: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E, 19B."
+    },
+    {
+     "id": "pos-03",
+     "category": "window_aisle",
+     "problems": [
+      "17A+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E: invalid group",
+      "preference miss: top window looks onto the wing"
+     ],
+     "message": "Seats 17A, 17E."
+    },
+    {
+     "id": "pos-04",
+     "category": "window_aisle",
+     "problems": [
+      "17A: no clear-view window"
+     ],
+     "message": "Seats 17A."
+    },
+    {
+     "id": "pos-05",
+     "category": "window_aisle",
+     "problems": [
+      "preference miss: top option has standard pitch"
+     ],
+     "message": "Seats 17C."
+    },
+    {
+     "id": "unav-01",
+     "category": "unavailable_seat",
+     "problems": [
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "unav-02",
+     "category": "unavailable_seat",
+     "problems": [
+      "17A+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E: invalid group"
+     ],
+     "message": "Seats 17A, 17E."
+    },
+    {
+     "id": "nofeas-01",
+     "category": "no_feasible",
+     "problems": [
+      "outcome recommend, expected no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "nofeas-02",
+     "category": "no_feasible",
+     "problems": [
+      "outcome recommend, expected no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "nofeas-03",
+     "category": "no_feasible",
+     "problems": [
+      "outcome recommend, expected no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "nofeas-04",
+     "category": "no_feasible",
+     "problems": [
+      "outcome recommend, expected no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17A: not an exit row, no clear-view window"
+     ],
+     "message": "Seats 17A."
+    },
+    {
+     "id": "nofeas-05",
+     "category": "no_feasible",
+     "problems": [
+      "outcome recommend, expected no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17A: total £6 > £2"
+     ],
+     "message": "Seats 17A."
+    },
+    {
+     "id": "multi-01",
+     "category": "multi_turn",
+     "problems": [
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "multi-02",
+     "category": "multi_turn",
+     "problems": [
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "multi-03",
+     "category": "multi_turn",
+     "problems": [
+      "outcome recommend, expected explain_row",
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group",
+      "does not mention row 6"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "multi-04",
+     "category": "multi_turn",
+     "problems": [
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "multi-05",
+     "category": "multi_turn",
+     "problems": [
+      "17A+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E: invalid group"
+     ],
+     "message": "Seats 17A, 17E."
+    },
+    {
+     "id": "multi-06",
+     "category": "multi_turn",
+     "problems": [
+      "17C+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17C+17E: invalid group"
+     ],
+     "message": "Seats 17C, 17E."
+    },
+    {
+     "id": "amb-01",
+     "category": "ambiguous",
+     "problems": [
+      "outcome recommend, expected clarify",
+      "showed 1 group(s) where none should be shown"
+     ],
+     "message": "Seats 17A."
+    },
+    {
+     "id": "amb-02",
+     "category": "ambiguous",
+     "problems": [
+      "outcome recommend, expected clarify",
+      "showed 1 group(s) where none should be shown"
+     ],
+     "message": "Seats 17E."
+    },
+    {
+     "id": "amb-03",
+     "category": "ambiguous",
+     "problems": [
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "amb-04",
+     "category": "ambiguous",
+     "problems": [
+      "outcome recommend, expected clarify",
+      "showed 1 group(s) where none should be shown"
+     ],
+     "message": "Seats 17E."
+    },
+    {
+     "id": "elig-01",
+     "category": "eligibility",
+     "problems": [
+      "outcome recommend, expected clarify|no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "elig-02",
+     "category": "eligibility",
+     "problems": [
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: not an exit row, invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "elig-04",
+     "category": "eligibility",
+     "problems": [
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "ar-01",
+     "category": "arabic",
+     "problems": [
+      "17A+17E+18B: adjacency/size/price check failed (data total £6, shown £6)",
+      "17A+17E+18B: invalid group"
+     ],
+     "message": "Seats 17A, 17E, 18B."
+    },
+    {
+     "id": "ar-02",
+     "category": "arabic",
+     "problems": [
+      "17C+17E: adjacency/size/price check failed (data total £6, shown £6)",
+      "17C+17E: invalid group"
+     ],
+     "message": "Seats 17C, 17E."
+    },
+    {
+     "id": "ar-03",
+     "category": "arabic",
+     "problems": [
+      "outcome recommend, expected no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17A: seat over per-seat budget"
+     ],
+     "message": "Seats 17A."
+    },
+    {
+     "id": "ar-04",
+     "category": "arabic",
+     "problems": [
+      "outcome recommend, expected clarify|no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17E+18B+18E: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B+18E: invalid group"
+     ],
+     "message": "Seats 17E, 18B, 18E."
+    },
+    {
+     "id": "inj-01",
+     "category": "override_attempt",
+     "problems": [
+      "outcome recommend, expected clarify|no_feasible",
+      "showed 1 group(s) where none should be shown",
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    },
+    {
+     "id": "inj-02",
+     "category": "override_attempt",
+     "problems": [
+      "17E+18B: adjacency/size/price check failed (data total £0, shown £0)",
+      "17E+18B: invalid group"
+     ],
+     "message": "Seats 17E, 18B."
+    }
+   ]
+  }
+ ],
+ "perCase": [
+  {
+   "id": "budget-01",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "budget-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "budget-03",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "budget-04",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "budget-05",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "budget-06",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "adj-01",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "adj-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "adj-03",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "adj-04",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "adj-05",
+   "pass": true,
+   "outcome": "clarify",
+   "problems": []
+  },
+  {
+   "id": "pos-01",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "pos-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "pos-03",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "pos-04",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "pos-05",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "unav-01",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "unav-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "unav-03",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "nofeas-01",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "nofeas-02",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "nofeas-03",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "nofeas-04",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "nofeas-05",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "multi-01",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "multi-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "multi-03",
+   "pass": true,
+   "outcome": "explain_row",
+   "problems": []
+  },
+  {
+   "id": "multi-04",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "multi-05",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "multi-06",
+   "pass": true,
+   "outcome": "clarify",
+   "problems": []
+  },
+  {
+   "id": "multi-07",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "amb-01",
+   "pass": true,
+   "outcome": "clarify",
+   "problems": []
+  },
+  {
+   "id": "amb-02",
+   "pass": true,
+   "outcome": "clarify",
+   "problems": []
+  },
+  {
+   "id": "amb-03",
+   "pass": true,
+   "outcome": "clarify",
+   "problems": []
+  },
+  {
+   "id": "amb-04",
+   "pass": true,
+   "outcome": "clarify",
+   "problems": []
+  },
+  {
+   "id": "elig-01",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "elig-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "elig-03",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "elig-04",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "ar-01",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "ar-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "ar-03",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "ar-04",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "inj-01",
+   "pass": true,
+   "outcome": "no_feasible",
+   "problems": []
+  },
+  {
+   "id": "inj-02",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  },
+  {
+   "id": "inj-03",
+   "pass": true,
+   "outcome": "info",
+   "problems": []
+  },
+  {
+   "id": "inj-04",
+   "pass": true,
+   "outcome": "recommend",
+   "problems": []
+  }
+ ],
+ "finishedAt": "2026-10-15T09:03:02.115Z"
+}
