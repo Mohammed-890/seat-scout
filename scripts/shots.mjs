@@ -38,17 +38,20 @@ const settle = async (p, ms = 2500) => { await p.evaluate("typeof dirty!=='undef
 const seat = (id, m) => `ui.select('${id}');enterSeat('${id}','${m}');view`;
 const desk = async (...ex) => { const p = await page(1440, 900); for (const e of ex) { await p.evaluate(e); await settle(p, 1200); } await settle(p, 2500); return p; };
 const mob = async (...ex) => { const p = await page(390, 844, true); for (const e of ex) { await p.evaluate(e); await settle(p, 1200); } await settle(p, 2500); return p; };
-const FAMILY = "We're two adults travelling with a five-year-old. Our total seat budget is £45. We want to sit together, and I'd prefer a window away from the wing.";
+const FAMILY = "Two adults and a 5-year-old, £45 total, together";
+const askJs = (t) => `(async()=>{qEl.value=${JSON.stringify(t)};send();for(let i=0;i<80&&busy;i++)await new Promise(r=>setTimeout(r,100));return 1})()`;
 const STATES = {
-  "desktop-aircraft": () => desk(),
-  "desktop-recommend": () => desk(`(async()=>{qEl.value=${JSON.stringify(FAMILY)};send();await new Promise(r=>setTimeout(r,4000));return 1})()`),
+  "desktop-start": () => desk(),
+  "desktop-recommend": () => desk(askJs(FAMILY)),
   "desktop-seat-forward": () => desk(seat("14A", "F")),
-  "desktop-seat-window": () => desk("loadModule('scenery').then(()=>1)", seat("14A", "W")),
-  "desktop-legroom": () => desk(seat("17C", "L")),
+  "desktop-window": () => desk("loadModule('scenery').then(()=>1)", seat("17A", "W")),
+  "desktop-explore": () => desk(seat("18C", "F"), "document.getElementById('dExplore').open=true;EXPLORE.act('recline');view"),
+  "desktop-legroom": () => desk(seat("17C", "L"), "document.getElementById('dDetails').open=true;1"),
+  "desktop-compare": () => desk(askJs("I want to leave quickly."), "cmpArm=true;ui.select('14A');1"),
   "desktop-about": () => desk("document.getElementById('aboutBtn').click();1"),
-  "mobile-aircraft": () => mob(),
-  "mobile-seat": () => mob(seat("21A", "W")),
-  "mobile-assistant": () => mob(`(async()=>{setSheet('expanded');qEl.value=${JSON.stringify(FAMILY)};send();await new Promise(r=>setTimeout(r,4000));return 1})()`),
+  "mobile-start": () => mob(),
+  "mobile-seat": () => mob("loadModule('scenery').then(()=>1)", seat("17A", "W")),
+  "mobile-adviser": () => mob(askJs(FAMILY)),
   "mobile-nogl": async () => { const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" }); const p = await ctx.newPage(); await p.route("https://cdn.jsdelivr.net/npm/three@0.147.0/**", (r) => r.fulfill({ body: readFileSync(`node_modules/three/${r.request().url().split("three@0.147.0/")[1]}`, "utf8"), contentType: "application/javascript" })); await p.route("https://fonts.googleapis.com/**", (r) => r.fulfill({ body: "", contentType: "text/css" })); await p.goto(base + "?no3d"); await p.waitForSelector("#loading.done"); await wait(800); return p; },
 };
 for (const [name, fn] of Object.entries(STATES)) {
