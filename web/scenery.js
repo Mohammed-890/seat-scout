@@ -70,8 +70,8 @@ const L_CIRRUS = layer({ alt: 5200, scale: 9000, stretch: [0.35, 2.6], cov: 0.56
 /* ---------- one daytime preset: the same values drive the sky, the clouds and the cabin lighting ---------- */
 const C = (r, g, b) => new THREE.Color(r, g, b);
 const PRESETS = {
-  day: { label: "Day above the clouds", sun: [-0.68, 0.52, 0.52], zenith: C(0.1, 0.25, 0.6), horizon: C(0.6, 0.72, 0.87), below: C(0.56, 0.63, 0.72), sunCol: C(1, 0.95, 0.86), sunAmt: 1, glow: 0.6, stars: 0, moon: 0,
-    deck: { cov: 0.46, lit: C(1.35, 1.35, 1.37), shade: C(0.5, 0.57, 0.7) }, cum: { cov: 0.6, lit: C(1.3, 1.3, 1.32), shade: C(0.64, 0.7, 0.8) }, cirrus: 0.35, ground: C(0.33, 0.38, 0.34), city: 0,
+  day: { label: "Day above the clouds", sun: [-0.68, 0.52, 0.52], zenith: C(0.08, 0.22, 0.58), horizon: C(0.42, 0.6, 0.86), below: C(0.42, 0.54, 0.7), sunCol: C(1, 0.95, 0.86), sunAmt: 1, glow: 0.6, stars: 0, moon: 0,
+    deck: { cov: 0.46, lit: C(1.35, 1.35, 1.37), shade: C(0.44, 0.52, 0.66) }, cum: { cov: 0.6, lit: C(1.3, 1.3, 1.32), shade: C(0.64, 0.7, 0.8) }, cirrus: 0.35, ground: C(0.33, 0.38, 0.34), city: 0,
     cabin: { sun: 3.6, sunCol: 0xfff0dc, hemi: 0.3, hemiSky: 0xf4f1ea, hemiGround: 0x3a3732, strip: 1.6, stripCol: 0xfff1e0, ceil: 0.55, exposure: 0.92, env: 1, win: 2.2 } },
 };
 /* cabin light handles are found in the cabin scene by type, so cabin3d.js doesn't need to export them */

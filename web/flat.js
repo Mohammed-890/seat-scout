@@ -8,9 +8,9 @@ const ZC = 0, air = { zoom: 1, target: { set() {}, copy() {} } }, airGoal = { zo
 const note = document.createElement("div"); note.className = "flat-note";
 note.innerHTML = "<div><b>3D view unavailable on this device.</b><br>Seat details, the seat map and the assistant still work with the same data.</div>";
 document.getElementById("viewer").append(note);
-document.querySelector(".views").hidden = true;
+document.querySelector(".presets").hidden = true;
 const flatToast = (t) => typeof ui !== "undefined" && ui.toast(t);
 function enterSeat(id) { selected = id; flatToast("Seat views need 3D (WebGL). Showing the seat on the map instead."); window.openTab && openTab("m"); typeof ui !== "undefined" && ui.sync(); }
-function backToAircraft() {} function rotateTo() {} function skipTransition() {}
+function backToAircraft() {} function rotateTo() {} function skipTransition() {} function resetView() {}
 function refreshGuides() {} function applyHighlights() {} function aimSelLight() {} function applyFades() {} function placeSun() {} function loop() {}
-setTimeout(() => { document.getElementById("loading").classList.add("done"); document.getElementById("cGo").hidden = true; }, 0);
+setTimeout(() => { document.getElementById("loading").classList.add("done"); document.getElementById("cGo").hidden = true; document.getElementById("dExplore").hidden = true; }, 0);
