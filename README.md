@@ -8,9 +8,8 @@
 > - This is a personal portfolio prototype, not a real airline service, and it is not affiliated with any airline.
 > - The cabin layout, prices and availability are illustrative demo data. The outside view is illustrative too.
 > - It does not make bookings or connect to any airline system.
-> - Created by Mohammed Banabilh with AI assistance (see [AI-assisted development](#ai-assisted-development)).
 
-Code: [github.com/Mohammed-890/seat-scout](https://github.com/Mohammed-890/seat-scout). A single-file preview also runs as a [claude.ai artifact](https://claude.ai/artifact/FaweTYWuRkYkGMVkpSTvRa); it is private until I share it, so the link may not open for everyone.
+Code: [github.com/Mohammed-890/seat-scout](https://github.com/Mohammed-890/seat-scout).
 
 ## The problem
 Seat maps show numbers and colours, but passengers want to know what a seat is actually like: how much room there is, whether the window lines up, how hard it is to get out, and what they give up for a lower price. Those questions often end up with customer-service staff. Seat Scout explores answering them before the passenger chooses.
@@ -109,5 +108,3 @@ Latest results: [docs/verification.md](docs/verification.md).
 - Accessibility needs as explicit requirements.
 - Testing with real passengers and customer-service staff.
 
-## AI-assisted development
-**I created Seat Scout with AI coding assistance.** I chose the problem (inspired by a cinema seat-picker demo), wrote the requirement briefs that set the product direction and quality bar, and reviewed the results, asking for changes, including this design refinement. I used AI (Claude, through Claude Code) to write the code, tests, evaluation suite and documentation, to debug, and to run the evaluations reported above. I didn't hand-write the generated code. Commits made with AI assistance carry a `Co-Authored-By` trailer.
