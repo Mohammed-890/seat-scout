@@ -54,7 +54,7 @@ Screenshots were rendered with software WebGL in a headless browser. The cabin a
 | Final check before showing or selecting | **Deterministic code** | Re-validates against the latest availability snapshot |
 | Wording of the explanation | **AI** when connected | The model may explain, but cannot change facts, prices or availability |
 
-The app always says which mode it is in: *"Rule-based demo: no AI model connected"* or *"Adviser: Claude (live AI)"*. In the claude.ai preview, the same core runs in the page and Claude is reached through the viewer's own claude.ai account when they allow it; otherwise the rule-based mode answers.
+The app always says which mode it is in: *"Rule-based demo: no AI model connected"* or *"Adviser: Claude (live AI)"*. In the single-file web preview, the same core runs in the page and the model is reached through the viewer's own account when they allow it; otherwise the rule-based mode answers.
 
 See [docs/architecture.md](docs/architecture.md) for the diagram and trust boundaries.
 

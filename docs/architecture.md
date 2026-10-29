@@ -51,10 +51,10 @@ Before the parser fix, parsed-constraint satisfaction was 101/101 while actual-r
 | Snapshot ↔ selection | Stale recommendations | Versioned snapshots; selection and recovery always revalidate against the latest version |
 
 ## Preview vs repository/backend
-| | claude.ai artifact preview | Repository (`npm start`) |
+| | Single-file web preview | Repository (`npm start`) |
 |---|---|---|
 | Where the core runs | In the page | In the Node server |
-| Model access | The viewer's own claude.ai account via the `sample` capability, when allowed; otherwise deterministic | `ANTHROPIC_API_KEY` in the server environment; otherwise deterministic |
+| Model access | The viewer's own account via the host page's `sample` capability, when allowed; otherwise deterministic | `ANTHROPIC_API_KEY` in the server environment; otherwise deterministic |
 | Session isolation | Page memory of one viewer | HttpOnly cookie sessions, rate limits, server-side state |
 | Deployment | Hosted artifact page | Not deployed by this project; runs locally |
 
@@ -68,5 +68,5 @@ Before the parser fix, parsed-constraint satisfaction was 101/101 while actual-r
 ## Fit summary
 `src/core/explain.ts` builds a `fit` object for every card: what the passenger asked for (requirements first, then preferences), which of those the group meets, which it misses, and one trade-off. The interface turns it into "You asked for … This seat matches both. The trade-off is …". It is computed from the trip state and the seat data in both modes, so a live model's wording can't change it.
 
-## Preview deployment (claude.ai artifact)
-The single-file preview bundles the same core, tools and UI into the page. When the viewer allows it, Claude is reached through the artifact `sample` capability **on the viewer's own claude.ai account**: there is still no key in the page, and tools run in the page with the same validation. Token counts aren't exposed there, so the trace shows latency only. Otherwise the preview uses the deterministic planner and says so.
+## Preview deployment (single-file page)
+The single-file preview bundles the same core, tools and UI into the page. When the viewer allows it, the model is reached through the host page's `sample` capability **on the viewer's own account**: there is still no key in the page, and tools run in the page with the same validation. Token counts aren't exposed there, so the trace shows latency only. Otherwise the preview uses the deterministic planner and says so.
